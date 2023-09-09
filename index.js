@@ -17,6 +17,12 @@ app.use(morgan('dev'))
 // Connect to the database
 dbConnect();
 
+// Welcome route
+app.get('/',(req,res)=>{
+  res.send('Hello from Onpods,Have a good day!')
+});
+
+
 // Import and use your routes here
 import {userRoutes,adminRoutes} from "./src/routes/v1/index.js";
 
@@ -39,10 +45,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Welcome route
-app.get('/',(req,res)=>{
-  res.send('Hello,Have a good day!')
-});
 
 const PORT = process.env.PORT || 3000;
 

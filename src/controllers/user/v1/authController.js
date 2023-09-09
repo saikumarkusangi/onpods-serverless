@@ -46,7 +46,7 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-        res.status(404).json({
+      return  res.status(404).json({
             status:'fail',
             message:'email and password are required'
         });
@@ -76,9 +76,9 @@ export const login = async (req, res) => {
             },
             token: generateToken(result.id)
         };
-        res.status(200).json(response);
+      return  res.status(200).json(response);
     } else {
-        res.status(404).json({
+       return res.status(404).json({
             status: "fail",
             message: "Incorrect Password"
         })
@@ -109,7 +109,7 @@ export const logout = async (req, res) => {
         isOnline: false
     });
 
-    res.status(200).json({
+  return  res.status(200).json({
         status: 'success',
         message: 'Logout successful'
     });
