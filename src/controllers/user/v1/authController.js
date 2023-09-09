@@ -1,4 +1,3 @@
-import asyncHandler from 'express-async-handler';
 import { generateToken } from '../../../config/jwtToken.js';
 import UserSchema from '../../../models/userModel.js';
 import generateRefreshToken from '../../../config/refreshToken.js';
