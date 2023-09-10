@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import dbConnect from './src/config/db.js';
 import morgan from 'morgan';
-
-// Import your routes and other modules
+import { fileURLToPath } from 'url'; // Import fileURLToPath
+import path from 'path';
 
 dotenv.config();
 const app = express();
@@ -12,22 +12,30 @@ const app = express();
 // Middleware
 app.use(cors('*'));
 app.use(express.json());
-app.use(morgan('dev'))
+app.use(morgan('dev'));
+
+// Get the current directory name using import.meta.url
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Connect to the database
 dbConnect();
 
+// template engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'src/views'));
+
 // Welcome route
-app.get('/',(req,res)=>{
-  res.send('Hello from Onpods,Have a good day!')
+app.get('/', (req, res) => {
+  res.render('index');
 });
 
-
 // Import and use your routes here
-import {userRoutes,adminRoutes} from "./src/routes/v1/index.js";
+import { userRoutes, adminRoutes, reportRoutes } from './src/routes/v1/index.js';
 
-app.use('/v1',userRoutes);
-app.use('/v1',adminRoutes);
+app.use('/v1', userRoutes);
+app.use('/v1', adminRoutes);
+app.use('/report', reportRoutes);
 
 // Not Found Middleware
 app.use((req, res, next) => {
@@ -44,7 +52,6 @@ app.use((err, req, res, next) => {
     message: err.message,
   });
 });
-
 
 const PORT = process.env.PORT || 3000;
 
