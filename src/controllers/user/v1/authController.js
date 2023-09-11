@@ -70,11 +70,11 @@ export const login = async (req, res) => {
         const response = {
             data: {
                 username: result.username,
-                email: result.email,
-                userType: result.userType,
+                // email: result.email,
+                // userType: result.userType,
                 id: result.id
             },
-            token: generateToken(result.id)
+            // token: generateToken(result.id)
         };
       return  res.status(200).json(response);
     } else {
