@@ -34,9 +34,7 @@ const addQuoteCategory = async(req,res)=>{
 const allQuotesCategories = async(req,res)=>{
     try {
         const data = await quoteCategoryModel.find();
-        return res.status(200).json({
-            data
-        });
+        return res.status(200).send(data);
     } catch (error) {
         return res.status(404).json({
             status:'fail',
