@@ -12,6 +12,7 @@ const app = express();
 // Middleware
 app.use(cors('*'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 app.use(morgan('dev'));
 
 // Get the current directory name using import.meta.url
