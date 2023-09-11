@@ -35,7 +35,6 @@ const allQuotesCategories = async(req,res)=>{
     try {
         const data = await quoteCategoryModel.find();
         return res.status(200).json({
-            status:'success',
             data
         });
     } catch (error) {

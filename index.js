@@ -32,12 +32,11 @@ app.get('/', (req, res) => {
 });
 
 // Import and use your routes here
-import { userRoutes, adminRoutes, reportRoutes ,podcastRoutes} from './src/routes/v1/index.js';
+import { userRoutes, adminRoutes, reportRoutes} from './src/routes/v1/index.js';
 
 app.use('/v1', userRoutes);
 app.use('/v1', adminRoutes);
 app.use('/report', reportRoutes);
-app.use('/v1',podcastRoutes);
 
 // Not Found Middleware
 app.use((req, res, next) => {
