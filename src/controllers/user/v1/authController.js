@@ -48,7 +48,7 @@ export const login = async (req, res) => {
     if (!email || !password) {
       return  res.status(404).json({
             status:'fail',
-            message:'email and password are required'
+            message:`${email} ${password}`
         });
     }
 
