@@ -1,3 +1,4 @@
+import userModel from '../../../models/userModel.js';
 import UserSchema from '../../../models/userModel.js'
 import IdValidate from '../../../utils/validation/idValidation.js';
 
@@ -8,27 +9,48 @@ import IdValidate from '../../../utils/validation/idValidation.js';
  * @param {object} res: response for all users
  * @return {object} : response for all users {status, message, data}
  */
-export const getAllUser = (async (req, res) => {
+export const getAllUser = async (req, res) => {
     try {
-        const { limit } = req.query;
-        const [count, result] = await Promise.all([
-            UserSchema.countDocuments(),
-            UserSchema.find().select(['-refreshToken'])
-            .limit(limit ? parseInt(limit) : 10)
-        ]);
-        res.json({
-            count,
-            data: result
-        });
-    } catch (error) {
-        res.status(404).json(
-            {
+        const { id } = req.body;
+
+        const user = await userModel.findById(id);
+        if (user && user.userType === 'Admin') {
+            const { limit, page } = req.query;
+            const pageSize = limit ? parseInt(limit) : 10;
+            const pageNumber = page ? parseInt(page) : 1;
+            const skip = (pageNumber - 1) * pageSize;
+
+            const [count, result] = await Promise.all([
+                UserSchema.countDocuments(),
+                UserSchema.find()
+                    .select(['-refreshToken', '-interests'])
+                    .skip(skip)
+                    .limit(pageSize)
+            ]);
+
+            return res.json({
+                count,
+                data: result,
+                page: pageNumber,
+                totalPages: Math.ceil(count / pageSize)
+            });
+        } else {
+            return res.status(403).json({
                 status: 'fail',
+                message: 'Forbidden'
+            });
+        }
+
+    } catch (error) {
+        res.status(500).json(
+            {
+                status: 'error',
                 message: `${error}`
             }
-        )
+        );
     }
-});
+};
+
 
 /**
  * @description : Get a single user by id
@@ -40,7 +62,7 @@ export const getAllUser = (async (req, res) => {
 export const getUser = async (req, res) => {
     const { id } = req.params;
     IdValidate(id);
-    const result = await UserSchema.findById(id).select(['-refreshToken']);
+    const result = await UserSchema.findById(id).select(['-interests']);
     if (!result) {
         res.status(404).json({
             message: 'Records not found'

@@ -13,16 +13,16 @@ const userSchema = new Schema({
     createdAt: { type: Date },
     updatedAt: { type: Date },
     interests : [],
-    isPublic: {
-        type: Boolean,
-        default: true,
-      },
+    // isPublic: {
+    //     type: Boolean,
+    //     default: true,
+    //   },
     userType: {
         type: String,
         enum: ['User', 'Admin', 'Moderator'],
         default: 'User'
     },
-    refreshToken: { type: String },
+    // refreshToken: { type: String },
 
 
 }, {

@@ -25,7 +25,7 @@ export const register = async(req, res) => {
             status: 'success',
             message: "Account created successfully",
             data: result,
-            token: generateToken(result.id)
+            // token: generateToken(result.id)
         });
     } else {
         return res.status(404).json({
@@ -48,7 +48,7 @@ export const login = async (req, res) => {
     if (!email || !password) {
       return  res.status(404).json({
             status:'fail',
-            message:`${email} ${password}`
+            message:'email and password required'
         });
     }
 
@@ -60,9 +60,9 @@ export const login = async (req, res) => {
             message: 'User not found'
         })
     } else if (result && await result.isPasswordMatched(password)) {
-        const refreshToken = await generateRefreshToken(result.id);
+        // const refreshToken = await generateRefreshToken(result.id);
         const updateUser = await UserSchema.findByIdAndUpdate(result.id, {
-            refreshToken,
+        
             isActive: true
         }, {
             new: true
@@ -71,7 +71,7 @@ export const login = async (req, res) => {
             data: {
                 username: result.username,
                 // email: result.email,
-                // userType: result.userType,
+                userType: result.userType,
                 id: result.id
             },
             // token: generateToken(result.id)
@@ -104,9 +104,8 @@ export const logout = async (req, res) => {
     }
 
     await UserSchema.findByIdAndUpdate({ _id:id }, {
-        refreshToken: '',
         isActive: false,
-        isOnline: false
+       
     });
 
   return  res.status(200).json({

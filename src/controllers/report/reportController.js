@@ -37,24 +37,31 @@ const reportPost = async (req, res) => {
 // List all reports
 const allReports = async (req, res) => {
     try {
+        const { page, limit } = req.query;
+        const pageNumber = parseInt(page) || 1;
+        const pageSize = parseInt(limit) || 10;
 
-        const { limit } = req.query;
         const count = await reportModel.countDocuments();
+        const skip = (pageNumber - 1) * pageSize;
+
         const data = await reportModel.find()
-            .limit(limit ? limit : 10);
+            .skip(skip)
+            .limit(pageSize);
 
         return res.status(200).json({
             count,
-            data
-        })
+            data,
+            page: pageNumber,
+            totalPages: Math.ceil(count / pageSize)
+        });
 
     } catch (error) {
-        return res.status(404).json({
+        return res.status(500).json({
             status: 'fail',
             message: 'An error occurred while fetching the reports',
         });
     }
-}
+};
 
 
 // delete a reports
