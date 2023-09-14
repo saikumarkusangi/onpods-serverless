@@ -12,8 +12,8 @@ import IdValidate from '../../../utils/validation/idValidation.js';
 export const getAllUser = async (req, res) => {
     try {
         const id = req.headers['auth-token'];
-
-        const user = await userModel.findById(id);
+        const userId = mongoose.Types.ObjectId(id);
+        const user = await userModel.findById(userId);
         if (user && user.userType === 'Admin') {
             const { limit, page } = req.query;
             const pageSize = limit ? parseInt(limit) : 10;
