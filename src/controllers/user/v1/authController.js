@@ -67,16 +67,17 @@ export const login = async (req, res) => {
         }, {
             new: true
         });
-        const response = {
-            data: {
-                username: result.username,
-                // email: result.email,
-                userType: result.userType,
-                id: result.id
-            },
+       
             // token: generateToken(result.id)
-        };
-      return  res.status(200).json(response);
+        
+      return  res.status(200).json({
+        data: {
+            username: result.username,
+            // email: result.email,
+            userType: result.userType,
+            id: result.id
+        },
+      });
     } else {
        return res.status(404).json({
             status: "fail",
