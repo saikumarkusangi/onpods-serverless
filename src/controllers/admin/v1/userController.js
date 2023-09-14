@@ -11,7 +11,7 @@ import IdValidate from '../../../utils/validation/idValidation.js';
  */
 export const getAllUser = async (req, res) => {
     try {
-        const { id } = req.body;
+        const id = req.headers['auth-token'];
 
         const user = await userModel.findById(id);
         if (user && user.userType === 'Admin') {
