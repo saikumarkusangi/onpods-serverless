@@ -72,10 +72,10 @@ export const login = async (req, res) => {
         
       return  res.status(200).json({
         data: {
-            username: result.username,
+            username: updateUser.username,
             // email: result.email,
-            userType: result.userType,
-            id: result.id
+            userType: updateUser.userType,
+            id: updateUser.id
         },
       });
     } else {
