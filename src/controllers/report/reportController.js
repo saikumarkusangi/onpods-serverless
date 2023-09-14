@@ -6,16 +6,16 @@ import reportModel from "../../models/reportModel.js";
 
 const reportPost = async (req, res) => {
     try {
-        const { postId, reason } = req.body;
+        const { id, reason } = req.body;
 
-        const existingReport = await reportModel.findOne({ postId });
+        const existingReport = await reportModel.findOne({ _id:id });
 
         if (existingReport) {
             existingReport.reportCount += 1;
             await existingReport.save();
         } else {
             const report = new reportModel({
-                postId,
+                id,
                 reason,
             });
             await report.save();

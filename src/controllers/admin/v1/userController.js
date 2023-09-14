@@ -12,9 +12,9 @@ import IdValidate from '../../../utils/validation/idValidation.js';
 export const getAllUser = async (req, res) => {
     try {
         const id = req.headers['auth-token'];
-        const adminId = id.split('"')[1]
-        const user = await userModel.findById(adminId);
-        if (user && user.userType === 'Admin') {
+        // const adminId = id.split('"')[1]
+        // const user = await userModel.findById(adminId);
+        // if (user && user.userType === 'Admin') {
             const { limit, page } = req.query;
             const pageSize = limit ? parseInt(limit) : 10;
             const pageNumber = page ? parseInt(page) : 1;
@@ -34,12 +34,12 @@ export const getAllUser = async (req, res) => {
                 page: pageNumber,
                 totalPages: Math.ceil(count / pageSize)
             });
-        } else {
-            return res.status(403).json({
-                status: 'fail',
-                message: 'Forbidden'
-            });
-        }
+        // } else {
+        //     return res.status(403).json({
+        //         status: 'fail',
+        //         message: 'Forbidden'
+        //     });
+        // }
 
     } catch (error) {
         res.status(500).json(
@@ -82,7 +82,6 @@ export const getUser = async (req, res) => {
  */
 export const deleteUser = async (req, res) => {
     const { id } = req.params;
-    IdValidate(id);
     const result = await UserSchema.findByIdAndDelete(id);
     if (!result) {
         res.status(404).json({
@@ -104,6 +103,7 @@ export const deleteUser = async (req, res) => {
  * @return {object} : response for update {status, message, data}
  */
 export const updateUser = async (req, res) => {
+    
     const { id } = req.params;
     const data = req.body;
     IdValidate(id);

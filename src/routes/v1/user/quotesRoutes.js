@@ -7,7 +7,7 @@ router.post('/upload',uploadQuote);
 router.get('/',getQuotesByCategory);
 router.get('/like/:id',increaseLikes);
 router.get('/search',searchQuotes);
-router.delete('/delete',deleteQuote);
+router.delete('/:id',deleteQuote);
 router.get('/:id',getQuoteId);
 router.get('/related/:id',relatedQuotes);
 

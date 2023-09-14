@@ -13,6 +13,9 @@ const reportSchema = new Schema({
         default: 1, 
     }
 
+},{
+    versionKey:false,
+    timestamps:false
 });
 
 const reportModel = model('reports',reportSchema);

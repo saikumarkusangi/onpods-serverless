@@ -31,18 +31,23 @@ const uploadQuote = async (req, res) => {
 
 const getQuotesByCategory = async (req, res) => {
     try {
-        const { category, limit } = req.query;
-
+        const { category, limit,page } = req.query;
+        const pageSize = limit ? parseInt(limit) : 10;
+        const pageNumber = page ? parseInt(page) : 1;
+        const skip = (pageNumber - 1) * pageSize;
         const count = await quoteModel.countDocuments({ category });
         const data = await quoteModel
             .find({ category })
             .sort({ createdAt: -1 })
+            .skip(skip)
             .limit(limit ? parseInt(limit) : 10);
 
 
         return res.status(200).json({
             count,
-            data
+            data,
+            page: pageNumber,
+            totalPages: Math.ceil(count / pageSize)
         })
     } catch (error) {
         return res.status(404).json({
@@ -121,20 +126,13 @@ const increaseLikes = async (req, res) => {
 const deleteQuote = async (req, res) => {
     try {
 
-        const { id, userId } = req.body;
-        const quote = await quoteModel.findById(id);
-        console.log(userId, quote.userId);
-        if (quote.userId.toHexString() === userId) {
+        const { id } = req.params;
+        // const quote = await quoteModel.findById(id);
             const result = await quoteModel.findByIdAndDelete(id);
             return res.status(200).json({
                 status: 'success',
                 message: 'Deleted Successfully'
             });
-        }
-        return res.status(404).json({
-            status: 'fail',
-            message: 'UnAuthorized'
-        });
     } catch (error) {
         return res.status(404).json({
             status: 'fail',
