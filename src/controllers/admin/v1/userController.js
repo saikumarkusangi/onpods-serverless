@@ -12,7 +12,7 @@ import mongoose from 'mongoose';
 export const getAllUser = async (req, res) => {
     try {
         const id = req.headers['auth-token'];
-        const userId = mongoose.Types.ObjectId(id);
+        const userId = new mongoose.Types.ObjectId(id);
         const user = await userModel.findById(userId);
         if (user && user.userType === 'Admin') {
             const { limit, page } = req.query;
