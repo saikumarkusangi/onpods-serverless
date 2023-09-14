@@ -1,7 +1,7 @@
 import userModel from '../../../models/userModel.js';
 import UserSchema from '../../../models/userModel.js'
 import IdValidate from '../../../utils/validation/idValidation.js';
-import mongoose from 'mongoose';
+
 /**
  * @description : List all users present in the database
  * @access: private
@@ -11,9 +11,10 @@ import mongoose from 'mongoose';
  */
 export const getAllUser = async (req, res) => {
     try {
-        const id = req.headers['auth-token'];
-        const userId = new mongoose.Types.ObjectId(id);
-        const user = await userModel.findById(userId);
+      
+        const idString = req.headers['auth-token']; 
+        const id = mongoose.Types.ObjectId(idString);
+        const user = await userModel.findById(id);
         if (user && user.userType === 'Admin') {
             const { limit, page } = req.query;
             const pageSize = limit ? parseInt(limit) : 10;
