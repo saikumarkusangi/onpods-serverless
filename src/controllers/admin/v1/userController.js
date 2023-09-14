@@ -1,7 +1,7 @@
 import userModel from '../../../models/userModel.js';
 import UserSchema from '../../../models/userModel.js'
 import IdValidate from '../../../utils/validation/idValidation.js';
-
+import mongoose from 'mongoose';
 /**
  * @description : List all users present in the database
  * @access: private
