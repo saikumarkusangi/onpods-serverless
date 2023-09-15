@@ -1,4 +1,75 @@
 import {podcastCategoriesModel,podcastmodel} from '../../../models/podcastModel.js';
+import usermodel from '../../../models/userModel.js';
+
+// controller to get podcast by id
+const podcastById = async(req,res)=>{
+  const {podcastId} = req.params;
+try {
+  const data = await podcastmodel.findById(podcastId);
+  return res.status(200).json(data)
+} catch (error) {
+  return res.status(404).json({
+    status:"fail",
+    message:`${error}`
+  })
+}
+}
+
+
+// Controller to get podcast by Id
+const podcastByCategory = async (req, res) => {
+  const { category } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+
+  try {
+    const matchPipeline = [
+      {
+        $match: {
+          category: category,
+        },
+      },
+    ];
+
+    const countPipeline = [...matchPipeline, { $count: 'count' }];
+
+    const dataPipeline = [
+      ...matchPipeline,
+      {
+        $project: {
+          _id: 1, 
+          posterUrl: 1,
+          title: 1,
+        
+        },
+      },
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
+      },
+    ];
+
+    const countResult = await podcastmodel.aggregate(countPipeline);
+    const data = await podcastmodel.aggregate(dataPipeline);
+
+    const count = countResult.length > 0 ? countResult[0].count : 0;
+    const totalPages = Math.ceil(count / limit);
+
+    return res.status(200).json({
+        count,
+        data,
+        page: parseInt(page),
+        totalPages,
+        
+    });
+  } catch (error) {
+    return res.status(404).json({
+      status: 'fail',
+      message: `${error}`,
+    });
+  }
+};
 
 
 // Controller to add a new podcast
@@ -7,7 +78,7 @@ const newpodcast = async (req, res) => {
         const { userId, posterUrl, category, title, description } = req.body;
 
         // Create a new podcast instance
-        const newPodcast = new Podcast({
+        const newPodcast = new podcastmodel({
             userId,
             posterUrl,
             category,
@@ -30,38 +101,37 @@ const newpodcast = async (req, res) => {
 
 // Controller to add a new episode to an existing podcast
 const newEpisode = async (req, res) => {
-    try {
-        const { title, description, audioUrl, bgUrl } = req.body;
-        const { podcastId } = req.params;
+  try {
+    const { title, description, audioUrl, bgUrl } = req.body;
+    const { podcastId } = req.params;
 
-        // Check if the podcast exists
-        const existingPodcast = await Podcast.findById(podcastId);
+    // Check if the podcast exists
+    const existingPodcast = await podcastmodel.findById(podcastId);
 
-        if (!existingPodcast) {
-            return res.status(404).json({ message: 'Podcast not found' });
-        }
+    const newEpisode = {
+      title,
+      description,
+      audioUrl,
+      bgUrl,
+    };
 
-        const newEpisode = {
-            title,
-            description,
-            audioUrl,
-            bgUrl,
-        };
+    // Push the new episode to the episodes array of the existing podcast
+    await podcastmodel.findByIdAndUpdate(
+      podcastId,
+      {
+        $push: { episodes: newEpisode },
+      },
+      { new: true } 
+    );
 
-        // Add the new episode to the episodes array of the existing podcast
-        existingPodcast.episodes.push(newEpisode);
-
-        // Save the updated podcast to the database
-        await existingPodcast.save();
-
-        res.status(200).json({
-            status: 'success',
-            message: 'Episode added to the podcast'
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error adding episode to the podcast' });
-    }
+    res.status(200).json({
+      status: 'success',
+      message: 'Episode added to the podcast',
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error adding episode to the podcast' });
+  }
 };
 
 
@@ -69,49 +139,35 @@ const newEpisode = async (req, res) => {
 const deletePodcast = async (req, res) => {
   try {
     const { podcastId } = req.params;
-
-    // Check if the podcast exists
-    const existingPodcast = await Podcast.findById(podcastId);
-
-    if (!existingPodcast) {
-      return res.status(404).json({ message: 'Podcast not found' });
-    }
-
-    // Delete the podcast
-    await existingPodcast.remove();
-
+    await podcastmodel.findByIdAndDelete(podcastId);
     res.json({ message: 'Podcast deleted successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error deleting podcast' });
+    res.status(404).json({ message: 'Error deleting podcast' });
   }
 };
 
 // Controller to delete an episode from a podcast by ID
 const deleteEpisode = async (req, res) => {
+  const { podcastId, episodeId } = req.params;
+
   try {
-    const { podcastId, episodeId } = req.params;
-
-    // Check if the podcast exists
-    const existingPodcast = await Podcast.findById(podcastId);
-
-    if (!existingPodcast) {
-      return res.status(404).json({ message: 'Podcast not found' });
-    }
-
-    // Remove the episode from the episodes array
-    existingPodcast.episodes = existingPodcast.episodes.filter(
-      (episode) => episode._id.toString() !== episodeId
+    const category = await podcastmodel.findByIdAndUpdate(
+      podcastId,
+      {
+        $pull: { episodes: { _id: episodeId } }, 
+      },
+      { new: true } 
     );
 
-    // Save the updated podcast without the deleted episode
-    await existingPodcast.save();
-
-    res.json({ message: 'Episode deleted successfully' });
+    res.status(200).json({
+      status: 'success',
+      message: 'Episode deleted successfully',
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error deleting episode' });
+    res.status(404).json({ message: `${error}` });
   }
+  
 };
 
 // Controller to update a podcast by ID
@@ -121,7 +177,7 @@ const updatePodcast = async (req, res) => {
     const { title, description } = req.body;
 
     // Check if the podcast exists
-    const existingPodcast = await Podcast.findById(podcastId);
+    const existingPodcast = await podcastmodel.findById(podcastId);
 
     if (!existingPodcast) {
       return res.status(404).json({ message: 'Podcast not found' });
@@ -176,6 +232,44 @@ const updateEpisode = async (req, res) => {
 };
 
 
+// search
+const search = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    // Search for podcasts, episodes, and users based on the query
+    const [podcasts, episodes, users] = await Promise.all([
+      podcastmodel.find({
+        $or: [
+          { title: { $regex: query, $options: 'i' } }, 
+          { description: { $regex: query, $options: 'i' } },
+        ],
+      }).select(['-episodes','-category','-userId','-createdAt']),
+       podcastmodel.find({
+        episodes: {
+          $elemMatch: {
+            $or: [
+              { title: { $regex: query, $options: 'i' } }, // Case-insensitive title search
+              { description: { $regex: query, $options: 'i' } }, // Case-insensitive description search
+            ],
+          },
+        },
+      }).select(['-category','-userId','-title','-description','-_id','-createdAt']),
+      usermodel.find({ username: { $regex: query, $options: 'i' } }), // Case-insensitive username search
+    ]);
+
+    res.status(200).json({
+      podcasts,
+      episodes,
+      users,
+    });
+  } catch (error) {
+    res.status(404).json({ message:  `${error}` });
+  }
+};
+
+
+
 
 export {
     newEpisode,
@@ -183,5 +277,8 @@ export {
     deletePodcast,
     updatePodcast,
     updateEpisode,
-    deleteEpisode
+    deleteEpisode,
+    podcastByCategory,
+    podcastById,
+    search
 };

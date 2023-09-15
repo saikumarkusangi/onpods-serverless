@@ -31,6 +31,21 @@ const userQuotes = async (req, res) => {
     }
 };
 
+const userInfo = async(req,res)=>{
+    try {
+        const {id} = req.headers;
+        const data = await userModel.findById(id)
+        .select(['-interests']);
+        return res.status(200).json(data);
+    } catch (error) {
+        return res.status(404).json({
+            status:'fail',
+            message:`${error}`
+        })
+    }
+}
+
 export {
-    userQuotes
+    userQuotes,
+    userInfo
 }

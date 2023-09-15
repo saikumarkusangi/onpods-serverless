@@ -39,8 +39,23 @@ const podcastCategoriesSchema = new Schema({
     timeseries: false
 });
 
+const podcastBgCategoriesSchema = new Schema({
+  category:String,
+  data:[
+    {
+        name:String,
+        audioUrl:String
+    }
+  ]
+
+},{
+    versionKey:false,
+    timestamps:false
+})
+
 
 const podcastmodel = model('podcast', podcastSchema);
 const podcastCategoriesModel = model('podcat-categories', podcastCategoriesSchema);
+const podcastBgCategoriesModel = model('podcast-bg-categories',podcastBgCategoriesSchema);
 
-export { podcastmodel, podcastCategoriesModel };
+export { podcastmodel, podcastCategoriesModel,podcastBgCategoriesModel };
