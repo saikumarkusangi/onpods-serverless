@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { userQuotes ,userInfo} from '../../../controllers/user/v1/userController.js';
-
+import { userQuotes, userInfo } from '../../../controllers/user/v1/userController.js';
+import { authorization } from '../../../middleware/auth.js';
 
 const router = Router();
 
-router.get('/quotes',userQuotes);
-router.get('/info',userInfo)
+router.use(authorization);
+
+
+router.get('/quotes', authorization, userQuotes);
+router.get('/info', authorization, userInfo)
 
 
 export default router;

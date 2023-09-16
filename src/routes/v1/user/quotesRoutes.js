@@ -1,14 +1,17 @@
 import { Router } from 'express';
-import { deleteQuote, getQuotesByCategory, getQuoteId, increaseLikes, searchQuotes, uploadQuote, relatedQuotes } from '../../../controllers/user/v1/quoteController.js';
+import * as quoteController from '../../../controllers/user/v1/quoteController.js';
+import { authorization } from '../../../middleware/auth.js';
 
 const router = Router();
 
-router.post('/upload',uploadQuote);
-router.get('/',getQuotesByCategory);
-router.get('/like/:id',increaseLikes);
-router.get('/search',searchQuotes);
-router.delete('/:id',deleteQuote);
-router.get('/:id',getQuoteId);
-router.get('/related/:id',relatedQuotes);
+router.use(authorization);
+
+router.post('/upload', quoteController.uploadQuote);
+router.get('/category/:category', quoteController.getQuotesByCategory);
+router.put('/like/:id', quoteController.increaseLikes);
+router.get('/search', quoteController.searchQuotes);
+router.delete('/:id', quoteController.deleteQuote);
+router.get('/id/:id', quoteController.getQuoteId);
+router.get('/related/:id', quoteController.relatedQuotes);
 
 export default router;

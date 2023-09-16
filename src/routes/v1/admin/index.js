@@ -7,7 +7,7 @@ const router = Router();
 
 router.use('/admin', userRoutes);
 router.use('/quote',quoteRoutes);
-router.use('/podcast/bg',podcastBgRoutes);
+router.use('/background-audio',podcastBgRoutes);
 
 
 export default router;

@@ -31,7 +31,8 @@ const uploadQuote = async (req, res) => {
 
 const getQuotesByCategory = async (req, res) => {
     try {
-        const { category, limit,page } = req.query;
+        const { category } = req.params;
+        const { limit, page } = req.query;
         const pageSize = limit ? parseInt(limit) : 10;
         const pageNumber = page ? parseInt(page) : 1;
         const skip = (pageNumber - 1) * pageSize;
@@ -41,7 +42,6 @@ const getQuotesByCategory = async (req, res) => {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit ? parseInt(limit) : 10);
-
 
         return res.status(200).json({
             count,
@@ -62,11 +62,12 @@ const getQuotesByCategory = async (req, res) => {
 
 const searchQuotes = async (req, res) => {
     try {
-        const { query, limit } = req.query;
+        const { query, limit, page } = req.query;
         const usernamePattern = new RegExp(query, 'i');
-
         const users = await userModel.find({ username: usernamePattern });
-
+        const pageSize = limit ? parseInt(limit) : 10;
+        const pageNumber = page ? parseInt(page) : 1;
+        const skip = (pageNumber - 1) * pageSize;
         const userIds = users.map(user => user._id);
         const filter = {
             $or: [
@@ -79,11 +80,14 @@ const searchQuotes = async (req, res) => {
         const data = await quoteModel
             .find(filter)
             .sort({ createdAt: -1 })
-            .limit(limit ? parseInt(limit) : 10);
+            .limit(limit ? parseInt(limit) : 10)
+            .select('-category');
 
         return res.status(200).json({
             count,
             data,
+            page: pageNumber,
+            totalPages: Math.ceil(count / pageSize)
         });
     } catch (error) {
         return res.status(500).json({
@@ -128,11 +132,11 @@ const deleteQuote = async (req, res) => {
 
         const { id } = req.params;
         // const quote = await quoteModel.findById(id);
-            const result = await quoteModel.findByIdAndDelete(id);
-            return res.status(200).json({
-                status: 'success',
-                message: 'Deleted Successfully'
-            });
+        const result = await quoteModel.findByIdAndDelete(id);
+        return res.status(200).json({
+            status: 'success',
+            message: 'Deleted Successfully'
+        });
     } catch (error) {
         return res.status(404).json({
             status: 'fail',
@@ -170,23 +174,23 @@ const getQuoteId = async (req, res) => {
 
 const relatedQuotes = async (req, res) => {
     try {
-            const { id } = req.params;
-            const { category } = req.query;
-            const relatedQuotes = await quoteModel.aggregate([
-                {
-                    $match: {
-                        category: category,
-                        _id: { $ne: id },
-                    },
+        const { id } = req.params;
+        const findCategory = await quoteModel.findById(id).select('category');
+        const relatedQuotes = await quoteModel.aggregate([
+            {
+                $match: {
+                    category: findCategory.category,
+                    _id: { $ne: id },
                 },
-                {
-                    $sample: { size: 6 },
-                },
-            ]);
+            },
+            {
+                $sample: { size: 6 },
+            },
+        ]);
 
-            return res.status(200).json({
-                relatedQuotes,
-            });
+        return res.status(200).json({
+            relatedQuotes,
+        });
     } catch (error) {
         return res.status(500).json({
             status: 'error',

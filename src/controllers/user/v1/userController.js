@@ -33,9 +33,9 @@ const userQuotes = async (req, res) => {
 
 const userInfo = async(req,res)=>{
     try {
-        const {id} = req.headers;
+        const id = req.id;
         const data = await userModel.findById(id)
-        .select(['-interests']);
+        .select('email username');
         return res.status(200).json(data);
     } catch (error) {
         return res.status(404).json({

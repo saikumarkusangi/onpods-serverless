@@ -36,7 +36,7 @@ import { userRoutes, adminRoutes, reportRoutes} from './src/routes/v1/index.js';
 
 app.use('/v1', userRoutes);
 app.use('/v1', adminRoutes);
-app.use('/report', reportRoutes);
+app.use('/v1/report', reportRoutes);
 
 // Not Found Middleware
 app.use((req, res, next) => {

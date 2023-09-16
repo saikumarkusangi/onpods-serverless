@@ -244,7 +244,7 @@ const search = async (req, res) => {
           { title: { $regex: query, $options: 'i' } }, 
           { description: { $regex: query, $options: 'i' } },
         ],
-      }).select(['-episodes','-category','-userId','-createdAt']),
+      }).select('_id posterUrl title description'),
        podcastmodel.find({
         episodes: {
           $elemMatch: {
@@ -254,8 +254,8 @@ const search = async (req, res) => {
             ],
           },
         },
-      }).select(['-category','-userId','-title','-description','-_id','-createdAt']),
-      usermodel.find({ username: { $regex: query, $options: 'i' } }), // Case-insensitive username search
+      }).select('posterUrl episodes'),
+      await usermodel.find({ username: { $regex: query, $options: 'i' } }).select('username _id'), // Case-insensitive username search
     ]);
 
     res.status(200).json({
