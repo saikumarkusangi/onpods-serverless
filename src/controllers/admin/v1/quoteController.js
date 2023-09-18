@@ -46,8 +46,8 @@ const allQuotesCategories = async(req,res)=>{
 // delete an category
 const deleteQuoteCategory = async(req,res)=>{
     try {
-        const {id} = req.params;
-        const result = await quoteCategoryModel.findByIdAndDelete(id);
+        const {categoryId} = req.params;
+        const result = await quoteCategoryModel.findByIdAndDelete(categoryId);
         if(result){
             return res.status(200).json({
                 status:'success',
@@ -65,10 +65,10 @@ const deleteQuoteCategory = async(req,res)=>{
 // update quote category
 const updateQuoteCategory = async(req,res)=>{
     try {
-        const {id} = req.params;
+        const {categoryId} = req.params;
         const newData = {...req.body}
         const result = await quoteCategoryModel.findByIdAndUpdate(
-            id,
+            categoryId,
             newData,
             {new:true}
         );

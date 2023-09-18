@@ -60,9 +60,8 @@ export const getAllUser = async (req, res) => {
  * @return {object} : response for a single user {status, message, data}
  */
 export const getUser = async (req, res) => {
-    const { id } = req.params;
-    IdValidate(id);
-    const result = await UserSchema.findById(id).select(['-interests']);
+    const { userId } = req.params;
+    const result = await UserSchema.findById(userId).select(['-interests']);
     if (!result) {
         res.status(404).json({
             message: 'Records not found'
@@ -81,8 +80,8 @@ export const getUser = async (req, res) => {
  * @return {object} : response for user deletion {status, message, data}
  */
 export const deleteUser = async (req, res) => {
-    const { id } = req.params;
-    const result = await UserSchema.findByIdAndDelete(id);
+    const { userId } = req.params;
+    const result = await UserSchema.findByIdAndDelete(userId);
     if (!result) {
         res.status(404).json({
             status: 'fail',
@@ -104,12 +103,12 @@ export const deleteUser = async (req, res) => {
  */
 export const updateUser = async (req, res) => {
     
-    const { id } = req.params;
+    const { userId } = req.params;
     const data = req.body;
-    IdValidate(id);
+
     try {
         const result = await UserSchema.findByIdAndUpdate(
-            id,
+            userId,
             data,
             { new: true }
         );

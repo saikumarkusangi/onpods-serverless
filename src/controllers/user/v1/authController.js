@@ -2,6 +2,7 @@ import { generateToken } from '../../../config/jwtToken.js';
 import UserSchema from '../../../models/userModel.js';
 import generateRefreshToken from '../../../config/refreshToken.js';
 import jwt from 'jsonwebtoken';
+import {sendCreateAccountOTP,sendForgotPasswordOTP} from '../../../services/nodeMailer.js';
 
 /**
  * @description : User registration 
@@ -149,9 +150,51 @@ export const handleRefreshToken =async (req, res) => {
     });
 };
 
+export const sendCreateAccountOtp = async(req,res)=>{
+    try {
+        const {email} = req.body;
+       const response =  sendCreateAccountOTP(email);
+       console.log(response);
+        return res.status(200).json({
+            status:'success',
+            message:'OTP Sent Successfully',
+            otp:response
+        })
+    } catch (error) {
+        return res.status(404).json({
+            message: `${error}`
+        });
+    }
+}
+
+export const sendForgotPasswordOtp = async(req,res)=>{
+    try {
+        const {email} = req.body;
+        const user = await UserSchema.findOne({email});
+        if(!user){
+            return res.status(200).json({
+                status:'fail',
+                message:'User not found'
+            })
+        }
+       const response =  sendForgotPasswordOTP(email);
+       console.log(response);
+        return res.status(200).json({
+            status:'success',
+            message:'OTP Sent Successfully',
+            otp:response
+        })
+    } catch (error) {
+        return res.status(404).json({
+            message: `${error}`
+        });
+    }
+}
+
 export default {
     register,
     login,
     logout,
+    sendCreateAccountOtp,
     handleRefreshToken
 };

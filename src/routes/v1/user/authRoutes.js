@@ -7,5 +7,7 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/refresh', authController.handleRefreshToken);
 router.get('/logout', authController.logout);
+router.post('/send-otp',authController.sendCreateAccountOtp);
+router.post('/forgot-password',authController.sendForgotPasswordOtp)
 
 export default router;
