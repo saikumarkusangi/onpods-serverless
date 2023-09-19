@@ -170,7 +170,7 @@ export const sendCreateAccountOtp = async(req,res)=>{
 export const sendForgotPasswordOtp = async(req,res)=>{
     try {
         const {email} = req.body;
-        const user = await UserSchema.findOne({email});
+        const user = await UserSchema.findOne({email:email});
         if(!user){
             return res.status(200).json({
                 status:'fail',
