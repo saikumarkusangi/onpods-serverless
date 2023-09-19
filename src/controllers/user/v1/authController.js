@@ -3,6 +3,7 @@ import UserSchema from '../../../models/userModel.js';
 import generateRefreshToken from '../../../config/refreshToken.js';
 import jwt from 'jsonwebtoken';
 import {sendCreateAccountOTP,sendForgotPasswordOTP} from '../../../services/nodeMailer.js';
+import bcrypt from 'bcrypt';
 
 /**
  * @description : User registration 
@@ -191,10 +192,42 @@ export const sendForgotPasswordOtp = async(req,res)=>{
     }
 }
 
+export const resetPassword = async(req,res)=>{
+    try {
+        const {email,password} = req.body;
+        hashPass = await bcrypt.hash(password, 8)
+        const user = await UserSchema.findOneAndUpdate(
+            {email:email},
+            {
+                password:hashPass
+            },
+            {new:true}
+            );
+        if(!user){
+            return res.status(200).json({
+                status:'fail',
+                message:'User not found'
+            })
+        }
+       console.log(response);
+        return res.status(200).json({
+            status:'success',
+            message:'Password Updated Successfully',
+            otp:response
+        })
+    } catch (error) {
+        return res.status(404).json({
+            message: `${error}`
+        });
+    }
+}
+
+
 export default {
     register,
     login,
     logout,
     sendCreateAccountOtp,
-    handleRefreshToken
+    handleRefreshToken,
+    resetPassword
 };
