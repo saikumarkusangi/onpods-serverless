@@ -75,7 +75,7 @@ export const login = async (req, res) => {
       return  res.status(200).json({
         data: {
             username: updateUser.username,
-            // email: result.email,
+            email: result.email,
             userType: updateUser.userType,
             id: updateUser.id
         },
