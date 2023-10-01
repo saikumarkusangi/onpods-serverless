@@ -1,5 +1,6 @@
 import { quoteModel } from "../../../models/quoteModel.js";
 import userModel from "../../../models/userModel.js";
+import { deleteImageFromS3 } from "../../../services/s3Service.js";
 
 
 
@@ -7,12 +8,14 @@ import userModel from "../../../models/userModel.js";
 // upload new quote
 const uploadQuote = async (req, res) => {
     try {
-
+        const imageUrl = req.file.location;
+        const { category } = req.body;
+        const userId = req.headers.authorization;
         const data = new quoteModel({
-            ...req.body,
-
+            userId: userId,
+            imageUrl: imageUrl,
+            category: category,
         });
-
         await data.save();
         res.status(200).json({
             status: 'success',
@@ -129,14 +132,25 @@ const increaseLikes = async (req, res) => {
 // Delete quote
 const deleteQuote = async (req, res) => {
     try {
-
         const { id } = req.params;
-        // const quote = await quoteModel.findById(id);
-        const result = await quoteModel.findByIdAndDelete(id);
-        return res.status(200).json({
-            status: 'success',
-            message: 'Deleted Successfully'
-        });
+        const quote = await quoteModel.findById(id);
+        const parts = quote.imageUrl.split('/');
+        const objectKey = parts[parts.length - 1];
+        const result = await deleteImageFromS3(objectKey);
+        if(result){
+            await quoteModel.findByIdAndDelete(id);
+            return res.status(200).json({
+                status: 'success',
+                message: 'Deleted Successfully'
+            });
+        }
+        else{
+            return res.status(404).json({
+                status: 'fail',
+                message: 'Something went'
+            });
+        }
+       
     } catch (error) {
         return res.status(404).json({
             status: 'fail',

@@ -24,8 +24,6 @@ const quoteSchema = new Schema({
 
 const quotesCategoriesSchema = new Schema({
    name:String,
-   imageUrl:String,
-
 },{
     versionKey:false,
     timeseries:false

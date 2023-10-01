@@ -5,6 +5,7 @@ import { isAdmin } from '../../../middleware/auth.js';
 const router = Router();
 
 
-router.get('/',isAdmin,statsController);
+router.get('/',isAdmin,statsController.stats);
+router.get('/mongodb',isAdmin,statsController.mongodbStats);
 
 export default router;
