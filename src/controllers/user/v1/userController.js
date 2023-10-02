@@ -6,13 +6,14 @@ import userModel from "../../../models/userModel.js";
 
 const userQuotes = async (req, res) => {
     try {
-        const {limit,page,id } = req.query;
+        const { id } = req.query;
+        const { limit, page } = req.query;
         const pageSize = limit ? parseInt(limit) : 10;
         const pageNumber = page ? parseInt(page) : 1;
         const skip = (pageNumber - 1) * pageSize;
-        const count = await quoteModel.countDocuments({ userId:id });
+        const count = await quoteModel.countDocuments({ userId: id });
         const data = await quoteModel
-            .find({ userId:id })
+            .find({ userId: id })
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit ? parseInt(limit) : 10);
@@ -31,19 +32,43 @@ const userQuotes = async (req, res) => {
     }
 };
 
-const userInfo = async(req,res)=>{
+const userInfo = async (req, res) => {
     try {
-        const id = req.id;
-        const data = await userModel.findById(id)
-        .select('email username');
-        return res.status(200).json(data);
+        const { id } = req.query;
+
+        const user = await userModel.findById(id)
+            .select('email username followers following private profilePic');
+
+        if (!user) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'User not found',
+            });
+        }
+
+        // Count the number of followers and following
+        const followersCount = user.followers.length;
+        const followingCount = user.following.length;
+
+        // Include the counts in the response
+        const responseData = {
+            email: user.email,
+            username: user.username,
+            followers: followersCount,
+            following: followingCount,
+            private: user.private,
+            profilePic: user.profilePic,
+        };
+
+        return res.status(200).json(responseData);
     } catch (error) {
-        return res.status(404).json({
-            status:'fail',
-            message:`${error}`
-        })
+        return res.status(500).json({
+            status: 'error',
+            message: error.message,
+        });
     }
 }
+
 
 export {
     userQuotes,

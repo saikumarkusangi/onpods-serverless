@@ -7,16 +7,26 @@ const userSchema = new Schema({
     username: { type: String ,required:true},
     password: { type: String, required: true },
     email: { type: String, required: true },
-    profilePic:{type:String},
+    profilePic:{type:String,default:''},
+    private:{
+        type:Boolean,
+        default:false
+    },
+    followers: [
+        {
+            userId: { type: Schema.Types.ObjectId, ref: 'user' },
+        }
+    ],
+    following: [
+        {
+            userId: { type: Schema.Types.ObjectId, ref: 'user' },
+        }
+    ],
     isOnline: { type: Boolean, default: false },
     isActive: { type: Boolean },
     createdAt: { type: Date },
     updatedAt: { type: Date },
     interests : [],
-    // isPublic: {
-    //     type: Boolean,
-    //     default: true,
-    //   },
     userType: {
         type: String,
         enum: ['User', 'Admin', 'Moderator'],
