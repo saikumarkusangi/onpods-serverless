@@ -9,7 +9,7 @@ router.use(authorization);
 
 router.post('/upload', upload.single('file'),quoteController.uploadQuote);
 router.get('/category/:category', quoteController.getQuotesByCategory);
-router.put('/like/:id', quoteController.increaseLikes);
+router.put('/like/:id', quoteController.quoteLike);
 router.get('/search', quoteController.searchQuotes);
 router.delete('/:id', quoteController.deleteQuote);
 router.get('/id/:id', quoteController.getQuoteId);

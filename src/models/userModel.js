@@ -4,43 +4,75 @@ import bcrypt from 'bcrypt';
 const { Schema, model } = mongoose;
 
 const userSchema = new Schema({
-    username: { type: String ,required:true},
+    username: { type: String, required: true },
     password: { type: String, required: true },
     email: { type: String, required: true },
-    profilePic:{type:String,default:''},
-    private:{
-        type:Boolean,
-        default:false
+    profilePic: { type: String, default: '' },
+    private: {
+        type: Boolean,
+        default: false
+    },
+    verified: {
+        type: Boolean,
+        default: false
     },
     followers: [
         {
-            userId: { type: Schema.Types.ObjectId, ref: 'user' },
-        }
+            _id: false,
+            userName: {
+                type: String
+            },
+            userId: {
+                type: String,
+
+            }
+        },
     ],
+
     following: [
         {
-            userId: { type: Schema.Types.ObjectId, ref: 'user' },
-        }
+            _id: false,
+            userName: {
+                _id: false,
+                type: String
+            },
+            userId: {
+                _id: false,
+                type: String,
+            }
+        },
+    ],
+    deviceTokens: [
+        {
+          type: String,
+        },
+      ],
+
+    requests: [
+        {
+            _id: false,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'user',
+
+        },
     ],
     isOnline: { type: Boolean, default: false },
     isActive: { type: Boolean },
     createdAt: { type: Date },
     updatedAt: { type: Date },
-    interests : [],
+    interests: [],
     userType: {
         type: String,
         enum: ['User', 'Admin', 'Moderator'],
         default: 'User'
     },
-    // refreshToken: { type: String },
-
 
 }, {
     timestamps: {
         createdAt: 'createdAt',
         updatedAt: 'updatedAt'
     },
-    versionKey:false
+    versionKey: false
 });
 
 userSchema.pre('save', async function (next) {

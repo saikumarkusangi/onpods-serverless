@@ -102,8 +102,8 @@ const searchQuotes = async (req, res) => {
 
 
 
-// increase quote likes
-const increaseLikes = async (req, res) => {
+// Quote Like or unlike
+const quoteLike = async (req, res) => {
     try {
         const { id } = req.params;
         const updatedQuote = await quoteModel.findByIdAndUpdate(
@@ -219,7 +219,7 @@ export {
     uploadQuote,
     getQuotesByCategory,
     searchQuotes,
-    increaseLikes,
+    quoteLike,
     deleteQuote,
     getQuoteId,
     relatedQuotes

@@ -13,6 +13,7 @@ import bcrypt from 'bcrypt';
  * @return {object} : response for registration {status, message, data}
  */
 export const register = async(req, res) => {
+   try {
     const data = new UserSchema({
         ...req.body
     });
@@ -35,6 +36,12 @@ export const register = async(req, res) => {
             message: "User Already Exists"
         })
     }
+   } catch (error) {
+    return res.status(404).json({
+        status:'fail',
+        message:`${error}`
+    })
+   }
 };
 
 /**
