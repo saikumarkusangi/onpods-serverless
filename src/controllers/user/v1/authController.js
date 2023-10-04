@@ -124,39 +124,6 @@ export const logout = async (req, res) => {
     });
 };
 
-/**
- * @description : Handle Refresh Token
- * @access: public
- * @param {object} req: request for handling refresh token
- * @param {object} res: response with a new access token
- * @return {object} : response with a new access token
- */
-export const handleRefreshToken =async (req, res) => {
-    const cookie = req.cookies;
-
-    if (!cookie?.refreshToken) {
-        throw new Error('No Refresh Token in Cookies');
-    }
-
-    const refreshToken = cookie.refreshToken;
-    const user = await UserSchema.findOne({ refreshToken });
-
-    if (!user) {
-        throw new Error('Refresh Token not matched.');
-    }
-
-    const decoded = await jwt.verify(refreshToken, process.env.JWT_CLIENT_SECRET);
-
-    if (!decoded || user.id !== decoded.id) {
-        throw new Error('Something went wrong');
-    }
-
-    const accessToken = generateToken(user.id);
-
-    res.json({
-        accessToken
-    });
-};
 
 export const sendCreateAccountOtp = async(req,res)=>{
     try {
@@ -235,6 +202,5 @@ export default {
     login,
     logout,
     sendCreateAccountOtp,
-    handleRefreshToken,
     resetPassword
 };

@@ -35,9 +35,10 @@ const userQuotes = async (req, res) => {
 const userInfo = async (req, res) => {
     try {
         const { id } = req.query;
+        const currentUserId = req.headers.authorization
 
         const user = await userModel.findById(id)
-            .select('email username followers following private profilePic');
+            .select('email username followers following private profilePic verified');
 
         if (!user) {
             return res.status(404).json({
@@ -50,6 +51,10 @@ const userInfo = async (req, res) => {
         const followersCount = user.followers.length;
         const followingCount = user.following.length;
 
+        // check current user followed or not
+
+        const followed = user.followers.findIndex((item) => item.userId === currentUserId);
+
         // Include the counts in the response
         const responseData = {
             email: user.email,
@@ -58,7 +63,8 @@ const userInfo = async (req, res) => {
             following: followingCount,
             private: user.private,
             profilePic: user.profilePic,
-            verified: user.verified
+            verified: user.verified,
+            followed:followed !== -1 ? true : false
         };
 
         return res.status(200).json(responseData);

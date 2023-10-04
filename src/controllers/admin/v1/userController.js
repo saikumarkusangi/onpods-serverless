@@ -23,7 +23,7 @@ export const getAllUser = async (req, res) => {
             const [count, result] = await Promise.all([
                 UserSchema.countDocuments(),
                 UserSchema.find()
-                    .select(['-refreshToken', '-interests'])
+                    .select(['-interests'])
                     .skip(skip)
                     .limit(pageSize)
             ]);

@@ -11,7 +11,7 @@ router.get('/quotes', authorization, userQuotes);
 router.get('/info', authorization, userInfo);
 router.get('/followers', authorization, userFollowers);
 router.get('/following', authorization, userFollowing);
-router.put('/follow', authorization, follow);
-router.put('/unfollow', authorization, unfollow);
+router.get('/follow', authorization, follow);
+router.get('/unfollow', authorization, unfollow);
 
 export default router;
