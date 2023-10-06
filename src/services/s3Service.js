@@ -69,7 +69,7 @@ const deleteProfilePicFromS3 = async (objectKey) => {
   try {
     const params = {
       Bucket: 'onpods',
-      Key: `profile-pics/${objectKey}`,
+      Key: `profile-pics/${objectKey}.jpg`,
     };
 
     s3.deleteObject(params, function (err, data) {

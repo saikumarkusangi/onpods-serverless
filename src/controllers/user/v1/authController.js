@@ -24,8 +24,8 @@ export const register = async(req, res) => {
         const result = await UserSchema.create(data);
         return res.status(200).json({
             status: 'success',
-            message: "Account created successfully",
-            data: result,
+            message: "Account created successfully",    
+            userId: result.id,
             // token: generateToken(result.id)
         });
     } else {

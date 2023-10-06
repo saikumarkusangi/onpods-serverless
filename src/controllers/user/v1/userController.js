@@ -216,7 +216,6 @@ const unfollow = async (req, res, next) => {
     //   type: 'Follow',
     // });
 
-
 }
 
 
@@ -225,12 +224,11 @@ const unfollow = async (req, res, next) => {
 const userUpdate = async(req,res)=>{
     try {
         const userId = req.headers.authorization;
-        const {username,interests,isPrivate,userType,deleteProfilePic} = req.body;
+        const {username,interests,isPrivate,deleteProfilePic} = req.body;
         const data = {};
         if (username) data.username = username;
         if (interests) data.interests = interests;
         if (isPrivate !== undefined) data.isPrivate = isPrivate;
-        if (userType) data.userType = userType;
         if (req.file) {
             const imageUrl = req.file.location;
             data.profilePic = imageUrl;
