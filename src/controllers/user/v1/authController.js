@@ -1,7 +1,5 @@
-import { generateToken } from '../../../config/jwtToken.js';
+
 import UserSchema from '../../../models/userModel.js';
-import generateRefreshToken from '../../../config/refreshToken.js';
-import jwt from 'jsonwebtoken';
 import {sendCreateAccountOTP,sendForgotPasswordOTP} from '../../../services/nodeMailer.js';
 import bcrypt from 'bcrypt';
 

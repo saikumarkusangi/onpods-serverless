@@ -28,11 +28,11 @@ app.set('views', path.join(__dirname, 'src/views'));
 
 // Welcome route
 app.get('/', (req, res) => {
-  res.render('index');
+  res.send('Welcome,Onpods Backend')
 });
 
 // Import and use your routes here
-import { userRoutes, adminRoutes, reportRoutes} from './src/routes/v1/index.js';
+import { userRoutes, adminRoutes, reportRoutes } from './src/routes/v1/index.js';
 
 app.use('/v1', userRoutes);
 app.use('/v1', adminRoutes);

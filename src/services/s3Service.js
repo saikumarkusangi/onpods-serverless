@@ -27,6 +27,22 @@ const upload = multer({
   }),
 });
 
+const uploadProfilePic = multer({
+  storage: multerS3({
+    s3,
+    bucket: 'onpods',
+    metadata(req, file, cb) {
+
+      cb(null, { fieldName: file.fieldname });
+    },
+    key(req, file, cb) {
+
+      cb(null, `profile-pics/${req.headers.authorization}.jpg`);
+    },
+  }),
+});
+
+
 
 const deleteImageFromS3 = async (objectKey) => {
   try {
@@ -39,7 +55,7 @@ const deleteImageFromS3 = async (objectKey) => {
       if (err) console.log(err, err.stack);
       else {
         console.log('Delete Success', data);
-       
+
       }
     });
     return true
@@ -60,7 +76,7 @@ const deleteProfilePicFromS3 = async (objectKey) => {
       if (err) console.log(err, err.stack);
       else {
         console.log('Delete Success', data);
-       
+
       }
     });
     return true
@@ -70,4 +86,4 @@ const deleteProfilePicFromS3 = async (objectKey) => {
 };
 
 
-export { upload, deleteImageFromS3,deleteProfilePicFromS3 };
+export { upload, deleteImageFromS3, deleteProfilePicFromS3 ,uploadProfilePic};

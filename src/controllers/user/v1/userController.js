@@ -1,6 +1,9 @@
 import { quoteModel } from "../../../models/quoteModel.js";
 import userModel from "../../../models/userModel.js";
 import mongoose from 'mongoose';
+import { deleteProfilePicFromS3 } from "../../../services/s3Service.js";
+
+
 
 // get quotes uploaded by user
 
@@ -38,7 +41,7 @@ const userInfo = async (req, res) => {
         const currentUserId = req.headers.authorization
 
         const user = await userModel.findById(id)
-            .select('email username followers following private profilePic verified');
+            .select('email username followers profilePic following isPrivate verified');
 
         if (!user) {
             return res.status(404).json({
@@ -216,11 +219,47 @@ const unfollow = async (req, res, next) => {
 
 }
 
+
+
+// upload user profile
+const userUpdate = async(req,res)=>{
+    try {
+        const userId = req.headers.authorization;
+        const {username,interests,isPrivate,userType,deleteProfilePic} = req.body;
+        const data = {};
+        if (username) data.username = username;
+        if (interests) data.interests = interests;
+        if (isPrivate !== undefined) data.isPrivate = isPrivate;
+        if (userType) data.userType = userType;
+        if (req.file) {
+            const imageUrl = req.file.location;
+            data.profilePic = imageUrl;
+        }
+        if(deleteProfilePic) {
+            const result = await  deleteProfilePicFromS3(`${userId}.jpg`);
+            data.profilePic = ''
+        }
+   
+        const user = await userModel.findByIdAndUpdate(userId,
+         data,
+        {
+            new:true
+        }).select('username profilePic isPrivate interests');
+        return res.status(200).send(user);
+    } catch (error) {
+        return res.status(404).json({
+            status:'fail',
+            message:`${error}`
+        })
+    }
+}
+
 export {
     userQuotes,
     userInfo,
     userFollowers,
     userFollowing,
     follow,
-    unfollow
+    unfollow,
+    userUpdate
 }
