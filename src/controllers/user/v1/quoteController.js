@@ -42,7 +42,7 @@ const getQuotesByCategory = async (req, res) => {
         const count = await quoteModel.countDocuments({ category });
         const data = await quoteModel
             .find({ category })
-            .sort({ createdAt: -1 })
+            .sort({ _id: -1 })
             .skip(skip)
             .limit(limit ? parseInt(limit) : 10);
 
