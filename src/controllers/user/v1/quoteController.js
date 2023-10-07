@@ -33,6 +33,7 @@ const uploadQuote = async (req, res) => {
 // get quotes by category
 
 const getQuotesByCategory = async (req, res) => {
+    console.log('ddd');
     try {
         const { category } = req.params;
         const { limit, page } = req.query;
@@ -40,17 +41,17 @@ const getQuotesByCategory = async (req, res) => {
         const pageNumber = page ? parseInt(page) : 1;
         const skip = (pageNumber - 1) * pageSize;
 
+        // Fetch a larger set of quotes (e.g., 50) for randomization.
+        const largerSetOfQuotes = await quoteModel.find({ category }).limit(50);
+
+        // Shuffle the larger set of quotes randomly.
+        const shuffledQuotes = shuffleArray(largerSetOfQuotes);
+
+        // Get the subset of quotes for the current page.
+        const data = shuffledQuotes.slice(skip, skip + pageSize);
+
         // Count the total number of quotes in the category.
-        const count = await quoteModel.countDocuments({ category });
-
-        // Generate a random seed to ensure randomization across requests.
-        const randomSeed = Math.random();
-
-        // Use aggregation to sample random quotes, ensuring no repeats.
-        const data = await quoteModel.aggregate([
-            { $match: { category } },
-            { $sample: { size: pageSize, randomSeed } },
-        ]);
+        const count = largerSetOfQuotes.length;
 
         return res.status(200).json({
             count,
@@ -65,6 +66,15 @@ const getQuotesByCategory = async (req, res) => {
         });
     }
 };
+
+// Function to shuffle an array randomly.
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
 
 
 
