@@ -39,19 +39,25 @@ const getQuotesByCategory = async (req, res) => {
         const pageSize = limit ? parseInt(limit) : 10;
         const pageNumber = page ? parseInt(page) : 1;
         const skip = (pageNumber - 1) * pageSize;
+
+        // Count the total number of quotes in the category.
         const count = await quoteModel.countDocuments({ category });
-        const data = await quoteModel
-            .find({ category })
-            .sort({ _id: -1 })
-            .skip(skip)
-            .limit(limit ? parseInt(limit) : 10);
+
+        // Generate a random seed to ensure randomization across requests.
+        const randomSeed = Math.random();
+
+        // Use aggregation to sample random quotes, ensuring no repeats.
+        const data = await quoteModel.aggregate([
+            { $match: { category } },
+            { $sample: { size: pageSize, randomSeed } },
+        ]);
 
         return res.status(200).json({
             count,
             data,
             page: pageNumber,
             totalPages: Math.ceil(count / pageSize)
-        })
+        });
     } catch (error) {
         return res.status(404).json({
             status: 'fail',
@@ -59,6 +65,7 @@ const getQuotesByCategory = async (req, res) => {
         });
     }
 };
+
 
 
 // search query (user,category)
