@@ -42,10 +42,10 @@ const getQuotesByCategory = async (req, res) => {
         const skip = (pageNumber - 1) * pageSize;
 
         // Fetch a larger set of quotes (e.g., 50) for randomization.
-        const largerSetOfQuotes = await quoteModel.find({ category }).limit(50);
+        const largerSetOfQuotes = await quoteModel.find({ category });
 
-        // Shuffle the larger set of quotes randomly.
-        const shuffledQuotes = shuffleArray(largerSetOfQuotes);
+        // Shuffle the larger set of quotes randomly using Fisher-Yates shuffle.
+        const shuffledQuotes = shuffleArrayFisherYates(largerSetOfQuotes);
 
         // Get the subset of quotes for the current page.
         const data = shuffledQuotes.slice(skip, skip + pageSize);
@@ -67,14 +67,27 @@ const getQuotesByCategory = async (req, res) => {
     }
 };
 
-// Function to shuffle an array randomly.
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+// Fisher-Yates shuffle function
+function shuffleArrayFisherYates(array) {
+    let currentIndex = array.length;
+    let temporaryValue, randomIndex;
+
+    // While there remain elements to shuffle...
+    while (currentIndex !== 0) {
+
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+
+        // And swap it with the current element.
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
     }
+
     return array;
 }
+
 
 
 
