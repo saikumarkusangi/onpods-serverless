@@ -5,6 +5,7 @@ import { deleteProfilePicFromS3 } from "../../../services/s3Service.js";
 
 
 
+
 // get quotes uploaded by user
 
 const userQuotes = async (req, res) => {
@@ -224,11 +225,12 @@ const unfollow = async (req, res, next) => {
 const userUpdate = async(req,res)=>{
     try {
         const userId = req.headers.authorization;
-        const {username,interests,isPrivate,deleteProfilePic} = req.body;
+        const {username,interests,isPrivate,deleteProfilePic,verified} = req.body;
         const data = {};
         if (username) data.username = username;
         if (interests) data.interests = interests;
         if (isPrivate !== undefined) data.isPrivate = isPrivate;
+        if (verified !== undefined) data.verified = verified;
         if (req.file) {
             const imageUrl = req.file.location;
             data.profilePic = imageUrl;
