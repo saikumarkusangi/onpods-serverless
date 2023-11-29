@@ -27,6 +27,48 @@ const upload = multer({
   }),
 });
 
+const podcastmulter = multer({
+  storage: multerS3({
+    s3,
+    bucket: 'onpods',
+    metadata(req, file, cb) {
+
+      cb(null, { fieldName: file.fieldname });
+    },
+    key(req, file, cb) {
+
+      cb(null, `podcasts/${Date.now().toString()}-${file.originalname}`);
+    },
+  }),
+});
+
+const deleteEpisodeFromS3 = async (url) => {
+  if (url) {
+   try {
+    const parts = url.split('/');
+    const objectKey = parts[parts.length - 1];
+    const params = {
+      Bucket: 'onpods',
+      Key: `podcasts/${objectKey}`,
+    };
+
+    s3.deleteObject(params, function (err, data) {
+      if (err) console.log(err, err.stack);
+      else {
+        console.log('Delete Success', data);
+
+      }
+    });
+    return true
+  } catch (error) {
+    console.error(`Error deleting Podcast from S3: ${error}`);
+  }
+  }
+  return Promise.resolve(); // Return a resolved promise if there is no URL
+};
+
+
+
 const uploadProfilePic = multer({
   storage: multerS3({
     s3,
@@ -86,4 +128,4 @@ const deleteProfilePicFromS3 = async (objectKey) => {
 };
 
 
-export { upload, deleteImageFromS3, deleteProfilePicFromS3 ,uploadProfilePic};
+export { upload, deleteImageFromS3, deleteProfilePicFromS3 ,uploadProfilePic,podcastmulter,deleteEpisodeFromS3};

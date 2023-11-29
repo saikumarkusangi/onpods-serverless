@@ -1,22 +1,29 @@
 import {podcastCategoriesModel,podcastmodel} from '../../../models/podcastModel.js';
 import usermodel from '../../../models/userModel.js';
+import { deleteEpisodeFromS3 } from '../../../services/s3Service.js';
 
 // controller to get podcast by id
 const podcastById = async(req,res)=>{
   const {podcastId} = req.params;
 try {
   const data = await podcastmodel.findById(podcastId);
-  return res.status(200).json(data)
+  if(!data){
+    return res.status(404).json({
+      status:'fail',
+      message:'Podcast not found'
+    });
+  }
+   res.status(200).json(data);
 } catch (error) {
   return res.status(404).json({
     status:"fail",
     message:`${error}`
-  })
+  });
 }
 }
 
 
-// Controller to get podcast by Id
+// Controller to get podcast by category
 const podcastByCategory = async (req, res) => {
   const { category } = req.params;
   const { page = 1, limit = 10 } = req.query;
@@ -104,20 +111,26 @@ const newpodcast = async (req, res) => {
 // Controller to add a new episode to an existing podcast
 const newEpisode = async (req, res) => {
   try {
-    const { title, description, audioUrl, posterUrl } = req.body;
+    const { title, description } = req.body;
     const { podcastId } = req.params;
 
     // Check if the podcast exists
     const existingPodcast = await podcastmodel.findById(podcastId);
+    if (!existingPodcast) {
+      return res.status(404).json({ message: 'Podcast not found' });
+    }
+
+    const { audioUrl, posterUrl } = req.files;
 
     const newEpisode = {
       title,
       description,
-      audioUrl,
-      posterUrl,
+      audioUrl: audioUrl ? audioUrl[0].location : undefined,
+      posterUrl: posterUrl ? posterUrl[0].location : undefined,
     };
+
     // Push the new episode to the episodes array of the existing podcast
-    await podcastmodel.findByIdAndUpdate(
+    const updatedPodcast = await podcastmodel.findByIdAndUpdate(
       podcastId,
       {
         $push: { episodes: newEpisode },
@@ -128,6 +141,7 @@ const newEpisode = async (req, res) => {
     res.status(200).json({
       status: 'success',
       message: 'Episode added to the podcast',
+      podcast: updatedPodcast, // Optionally, you can send the updated podcast object in the response
     });
   } catch (error) {
     console.error(error);
@@ -140,25 +154,68 @@ const newEpisode = async (req, res) => {
 const deletePodcast = async (req, res) => {
   try {
     const { podcastId } = req.params;
+
+    const podcast = await podcastmodel
+      .findById(podcastId)
+      .select('episodes');
+
+    if (!podcast) {
+      return res.status(404).json({ message: 'Podcast not found' });
+    }
+
+    // Delete every episode associated with the podcast
+    await Promise.all(
+      podcast.episodes.map(async (episode) => {
+        await Promise.all([
+          deleteEpisodeFromS3(episode.audioUrl),
+          deleteEpisodeFromS3(episode.posterUrl),
+        ]);
+      })
+    );
+
+    // Delete the podcast itself
     await podcastmodel.findByIdAndDelete(podcastId);
+
     res.json({ message: 'Podcast deleted successfully' });
   } catch (error) {
     console.error(error);
-    res.status(404).json({ message: 'Error deleting podcast' });
+    res.status(500).json({ message: 'Error deleting podcast' });
   }
 };
+
 
 // Controller to delete an episode from a podcast by ID
 const deleteEpisode = async (req, res) => {
   const { podcastId, episodeId } = req.params;
 
   try {
+    const podcast = await podcastmodel
+      .findById(podcastId)
+      .select('episodes');
+
+    if (!podcast) {
+      return res.status(404).json({ message: 'Podcast not found' });
+    }
+
+    const selectedEpisode = podcast.episodes.find(episode => episode._id.toString() === episodeId);
+
+    if (!selectedEpisode) {
+      return res.status(404).json({ 
+        status:'fail',
+        message: 'Episode not found' });
+    }
+
+    await Promise.all([
+      deleteEpisodeFromS3(selectedEpisode.audioUrl),
+      deleteEpisodeFromS3(selectedEpisode.posterUrl)
+    ]);
+
     const category = await podcastmodel.findByIdAndUpdate(
       podcastId,
       {
-        $pull: { episodes: { _id: episodeId } }, 
+        $pull: { episodes: { _id: episodeId } },
       },
-      { new: true } 
+      { new: true }
     );
 
     res.status(200).json({
@@ -166,9 +223,9 @@ const deleteEpisode = async (req, res) => {
       message: 'Episode deleted successfully',
     });
   } catch (error) {
-    res.status(404).json({ message: `${error}` });
+    console.error(error);
+    res.status(500).json({ message: 'Error deleting episode' });
   }
-  
 };
 
 // Controller to update a podcast by ID
