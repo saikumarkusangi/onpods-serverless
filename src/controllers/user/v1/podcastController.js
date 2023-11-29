@@ -39,6 +39,7 @@ const podcastByCategory = async (req, res) => {
           _id: 1, 
           posterUrl: 1,
           title: 1,
+          description:1
         
         },
       },
@@ -75,8 +76,9 @@ const podcastByCategory = async (req, res) => {
 // Controller to add a new podcast
 const newpodcast = async (req, res) => {
     try {
-        const { userId, posterUrl, category, title, description } = req.body;
-
+      const posterUrl = req.file.location;
+        const { userId, category, title, description } = req.body;
+        
         // Create a new podcast instance
         const newPodcast = new podcastmodel({
             userId,
@@ -102,7 +104,7 @@ const newpodcast = async (req, res) => {
 // Controller to add a new episode to an existing podcast
 const newEpisode = async (req, res) => {
   try {
-    const { title, description, audioUrl, bgUrl } = req.body;
+    const { title, description, audioUrl, posterUrl } = req.body;
     const { podcastId } = req.params;
 
     // Check if the podcast exists
@@ -112,9 +114,8 @@ const newEpisode = async (req, res) => {
       title,
       description,
       audioUrl,
-      bgUrl,
+      posterUrl,
     };
-
     // Push the new episode to the episodes array of the existing podcast
     await podcastmodel.findByIdAndUpdate(
       podcastId,
@@ -174,26 +175,23 @@ const deleteEpisode = async (req, res) => {
 const updatePodcast = async (req, res) => {
   try {
     const { podcastId } = req.params;
-    const { title, description } = req.body;
+    const { title, description, category } = req.body;
 
     // Check if the podcast exists
-    const existingPodcast = await podcastmodel.findById(podcastId);
+    const existingPodcast = await podcastmodel.findByIdAndUpdate(
+      podcastId,
+      { ...req.body },
+     
+    );
 
     if (!existingPodcast) {
       return res.status(404).json({ message: 'Podcast not found' });
     }
 
-    // Update the podcast properties
-    existingPodcast.title = title;
-    existingPodcast.description = description;
-
-    // Save the updated podcast
-    await existingPodcast.save();
-
     res.json({ message: 'Podcast updated successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error updating podcast' });
+    res.status(500).json({ message: `Error updating podcast: ${error.message}` });
   }
 };
 

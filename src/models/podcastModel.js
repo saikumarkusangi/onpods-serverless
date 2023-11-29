@@ -18,7 +18,7 @@ const podcastSchema = new Schema({
         title:{ type:String },
         description:{ type:String },
         audioUrl:{ type:String },
-        bgUrl:{ type:String }
+        posterUrl:{ type:String }
       }]
 }, {
     versionKey: false,
@@ -33,6 +33,7 @@ const podcastSchema = new Schema({
 const podcastCategoriesSchema = new Schema({
     name: String,
     imageUrl: String,
+    color:String
 
 }, {
     versionKey: false,

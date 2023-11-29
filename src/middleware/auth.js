@@ -5,6 +5,7 @@ const authorization = async (req, res, next) => {
     if (req.headers && req.headers.authorization) {
         id = req.headers.authorization;
         try {
+            console.log(req.headers.authorization);
             const user = await userModel.findById(id);
             if (user) {
                 req.id = user.id;

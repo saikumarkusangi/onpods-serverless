@@ -160,7 +160,99 @@ const deleteById = async (req, res) => {
       });
     }
   };
-  
+
+// Add New Podcast Category
+
+const addPodcastCategory = async(req,res)=>{
+  try {
+    const imageUrl = req.file.location;
+    const {name,color} = req.body;
+      const data = new podcastCategoriesModel({
+          name,
+          color,
+          imageUrl
+      });
+     const check = await podcastCategoriesModel.findOne({name:req.body.name});
+     if(check){
+      return res.status(404).json({
+          status:'fail',
+          message:'Category Already Exists'
+      });
+     }
+     await data.save();
+     return res.status(200).json({
+      status:'success',
+      message:'Added Successfully'
+     });
+  } catch (error) {
+      return res.status(404).json({
+          status:'fail',
+          message:`${error}`
+         });
+  }
+}
+
+
+// fetch all podcast categories
+const fetchPodcastCategories = async(req,res)=>{
+  try {
+      const data = await podcastCategoriesModel.find();
+      return res.status(200).send(data);
+  } catch (error) {
+      return res.status(404).json({
+          status:'fail',
+          message:`${error}`
+      });
+  }
+}
+
+// delete an podcast category
+const deletePodcastCategory = async(req,res)=>{
+  try {
+      const {categoryId} = req.params;
+      const result = await podcastCategoriesModel.findByIdAndDelete(categoryId);
+      if(result){
+          return res.status(200).json({
+              status:'success',
+              message:'Category Deleted Sucessfully'
+          });
+      }
+  } catch (error) {
+      return res.status(404).json({
+          status:'fail',
+          message:`${error}`
+      });
+  }
+}
+
+// update podcast category
+const updatePodcastCategory = async(req,res)=>{
+  try {
+      const {categoryId} = req.params;
+      const newData = {...req.body}
+      const result = await podcastCategoriesModel.findByIdAndUpdate(
+          categoryId,
+          newData,
+          {new:true}
+      );
+      if(result){
+          return res.status(200).json({
+              status:'success',
+              message:'Category Updated Successfully',
+              data:result
+           });
+      }
+      return res.status(404).json({
+          status:'fail',
+          message:'Category not found'
+       });
+  } catch (error) {
+      return res.status(404).json({
+          status:'fail',
+          message:`${error}`
+       });
+  }
+}
   
 
 export {
@@ -171,5 +263,9 @@ export {
     deleteById,
     deleteAudioById,
     updateCategoryById,
-    getAudioById
+    getAudioById,
+    addPodcastCategory,
+    updatePodcastCategory,
+    deletePodcastCategory,
+    fetchPodcastCategories
 }

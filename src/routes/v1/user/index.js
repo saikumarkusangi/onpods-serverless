@@ -4,6 +4,7 @@ import quoteRoutes from './quotesRoutes.js';
 import podcastRoutes from './podcastRoutes.js';
 import userRoutes from './userRoutes.js'
 
+
 const router = Router();
 
 router.use('/auth', authRoutes);

@@ -1,15 +1,12 @@
 import { Router } from 'express';
 const router = Router();
-import * as podcastBgCategoriesController from '../../../controllers/admin/v1/podcastController.js';
+import * as podcastController from '../../../controllers/admin/v1/podcastController.js';
 import { authorization, isAdmin } from '../../../middleware/auth.js';
+import {upload} from '../../../services/s3Service.js';
 
-router.post('/', isAdmin, podcastBgCategoriesController.create);
-router.get('/', authorization, podcastBgCategoriesController.getAll);
-router.get('/:categoryId', authorization, podcastBgCategoriesController.getById);
-router.delete('/:categoryId', isAdmin, podcastBgCategoriesController.deleteById);
-router.put('/:categoryId', isAdmin, podcastBgCategoriesController.addDataToCategory);
-router.delete('/:categoryId/delete-audio/:audioId', isAdmin, podcastBgCategoriesController.deleteAudioById);
-router.put('/update/:categoryId', authorization, podcastBgCategoriesController.updateCategoryById);
-router.get('/audio/:audioId', authorization, podcastBgCategoriesController.getAudioById)
+router.post('/', upload.single('file'),podcastController.addPodcastCategory);
+router.get('/',podcastController.fetchPodcastCategories);
+router.delete('/:id',podcastController.deletePodcastCategory);
+router.put('/:id',podcastController.updatePodcastCategory);
 
 export default router;
