@@ -11,7 +11,19 @@ const podcastSchema = new Schema({
     createdAt: {
         type: Date,
     },
-    rating: Number,
+    followers:[{
+        _id: false,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+    }],
+    totalRating: {
+        type:Number,
+        default:0
+    },
+    numberOfRatings:{
+        type:Number,
+        default:0
+    },
     title:String,
     description:String,
     episodes:[{

@@ -1,26 +1,57 @@
-import {podcastCategoriesModel,podcastmodel} from '../../../models/podcastModel.js';
+import { podcastCategoriesModel, podcastmodel } from '../../../models/podcastModel.js';
 import usermodel from '../../../models/userModel.js';
 import { deleteEpisodeFromS3 } from '../../../services/s3Service.js';
 
-// controller to get podcast by id
-const podcastById = async(req,res)=>{
-  const {podcastId} = req.params;
-try {
-  const data = await podcastmodel.findById(podcastId);
-  if(!data){
-    return res.status(404).json({
-      status:'fail',
-      message:'Podcast not found'
+const podcastById = async (req, res) => {
+  const { podcastId } = req.params;
+  const userId = req.headers.authorization;
+
+  try {
+    // Retrieve podcast data and user following information in parallel
+    const [data, userFollowing] = await Promise.all([
+      podcastmodel.findById(podcastId).lean().exec(),
+      podcastmodel.findOne({ _id: podcastId, followers: userId }).lean().exec(),
+    ]);
+
+    if (!data) {
+      return res.status(404).json({
+        status: 'fail',
+        message: 'Podcast not found'
+      });
+    }
+
+    const following = !!userFollowing; // Convert to boolean
+     // Calculate the average rating
+     const averageRating = data.totalRating / data.numberOfRatings;
+     // Round the averageRating to one decimal place
+     const rating = parseFloat(averageRating.toFixed(1));
+
+    const response = {
+      _id: data._id,
+      userId: data.userId,
+      createdAt: data.createdAt,
+      followers: data.followers.length,
+      following: following,
+      rating,
+      rated:data.numberOfRatings,
+      posterUrl: data.posterUrl,
+      category: data.category,
+      title: data.title,
+      description: data.description,
+      episodes: data.episodes,
+      
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    return res.status(500).json({
+      status: 'error',
+      message: `${error}`
     });
   }
-   res.status(200).json(data);
-} catch (error) {
-  return res.status(404).json({
-    status:"fail",
-    message:`${error}`
-  });
-}
-}
+};
+
+
 
 
 // Controller to get podcast by category
@@ -43,11 +74,11 @@ const podcastByCategory = async (req, res) => {
       ...matchPipeline,
       {
         $project: {
-          _id: 1, 
+          _id: 1,
           posterUrl: 1,
           title: 1,
-          description:1
-        
+          description: 1
+
         },
       },
       {
@@ -65,11 +96,11 @@ const podcastByCategory = async (req, res) => {
     const totalPages = Math.ceil(count / limit);
 
     return res.status(200).json({
-        count,
-        data,
-        page: parseInt(page),
-        totalPages,
-        
+      count,
+      data,
+      page: parseInt(page),
+      totalPages,
+
     });
   } catch (error) {
     return res.status(404).json({
@@ -79,33 +110,32 @@ const podcastByCategory = async (req, res) => {
   }
 };
 
-
 // Controller to add a new podcast
 const newpodcast = async (req, res) => {
-    try {
-      const posterUrl = req.file.location;
-        const { userId, category, title, description } = req.body;
-        
-        // Create a new podcast instance
-        const newPodcast = new podcastmodel({
-            userId,
-            posterUrl,
-            category,
-            title,
-            description,
-        });
+  try {
+    const posterUrl = req.file.location;
+    const { userId, category, title, description } = req.body;
 
-        // Save the new podcast to the database
-        await newPodcast.save();
+    // Create a new podcast instance
+    const newPodcast = new podcastmodel({
+      userId,
+      posterUrl,
+      category,
+      title,
+      description,
+    });
 
-        res.status(200).json({
-            status: 'success',
-            message: 'Podcast created successfully'
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error creating podcast' });
-    }
+    // Save the new podcast to the database
+    await newPodcast.save();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Podcast created successfully'
+    });
+  } catch (error) {
+
+    res.status(500).json({ message: 'Error creating podcast' });
+  }
 };
 
 // Controller to add a new episode to an existing podcast
@@ -135,16 +165,15 @@ const newEpisode = async (req, res) => {
       {
         $push: { episodes: newEpisode },
       },
-      { new: true } 
+      { new: true }
     );
 
     res.status(200).json({
       status: 'success',
       message: 'Episode added to the podcast',
-      podcast: updatedPodcast, // Optionally, you can send the updated podcast object in the response
     });
   } catch (error) {
-    console.error(error);
+
     res.status(500).json({ message: 'Error adding episode to the podcast' });
   }
 };
@@ -178,7 +207,7 @@ const deletePodcast = async (req, res) => {
 
     res.json({ message: 'Podcast deleted successfully' });
   } catch (error) {
-    console.error(error);
+
     res.status(500).json({ message: 'Error deleting podcast' });
   }
 };
@@ -200,9 +229,10 @@ const deleteEpisode = async (req, res) => {
     const selectedEpisode = podcast.episodes.find(episode => episode._id.toString() === episodeId);
 
     if (!selectedEpisode) {
-      return res.status(404).json({ 
-        status:'fail',
-        message: 'Episode not found' });
+      return res.status(404).json({
+        status: 'fail',
+        message: 'Episode not found'
+      });
     }
 
     await Promise.all([
@@ -223,7 +253,7 @@ const deleteEpisode = async (req, res) => {
       message: 'Episode deleted successfully',
     });
   } catch (error) {
-    console.error(error);
+
     res.status(500).json({ message: 'Error deleting episode' });
   }
 };
@@ -238,7 +268,7 @@ const updatePodcast = async (req, res) => {
     const existingPodcast = await podcastmodel.findByIdAndUpdate(
       podcastId,
       { ...req.body },
-     
+
     );
 
     if (!existingPodcast) {
@@ -247,7 +277,7 @@ const updatePodcast = async (req, res) => {
 
     res.json({ message: 'Podcast updated successfully' });
   } catch (error) {
-    console.error(error);
+
     res.status(500).json({ message: `Error updating podcast: ${error.message}` });
   }
 };
@@ -256,10 +286,10 @@ const updatePodcast = async (req, res) => {
 const updateEpisode = async (req, res) => {
   try {
     const { podcastId, episodeId } = req.params;
-    const { title, description, audioUrl, bgUrl } = req.body;
+    const { title, description, posterUrl } = req.body;
 
     // Check if the podcast exists
-    const existingPodcast = await Podcast.findById(podcastId);
+    const existingPodcast = await podcastmodel.findById(podcastId);
 
     if (!existingPodcast) {
       return res.status(404).json({ message: 'Podcast not found' });
@@ -271,12 +301,13 @@ const updateEpisode = async (req, res) => {
       return res.status(404).json({ message: 'Episode not found' });
     }
 
-    episodeToUpdate.title = title;
-    episodeToUpdate.description = description;
-    episodeToUpdate.audioUrl = audioUrl;
-    episodeToUpdate.bgUrl = bgUrl;
+    // Update episode properties
+    episodeToUpdate.title = title || episodeToUpdate.title;
+    episodeToUpdate.description = description || episodeToUpdate.description;
+    episodeToUpdate.posterUrl = posterUrl || episodeToUpdate.posterUrl;
 
-    // Save the updated podcast with the modified episode
+
+    // Save the updated podcast
     await existingPodcast.save();
 
     res.json({ message: 'Episode updated successfully' });
@@ -296,11 +327,11 @@ const search = async (req, res) => {
     const [podcasts, episodes, users] = await Promise.all([
       podcastmodel.find({
         $or: [
-          { title: { $regex: query, $options: 'i' } }, 
+          { title: { $regex: query, $options: 'i' } },
           { description: { $regex: query, $options: 'i' } },
         ],
       }).select('_id posterUrl title description'),
-       podcastmodel.find({
+      podcastmodel.find({
         episodes: {
           $elemMatch: {
             $or: [
@@ -319,21 +350,92 @@ const search = async (req, res) => {
       users,
     });
   } catch (error) {
-    res.status(404).json({ message:  `${error}` });
+    res.status(404).json({ message: `${error}` });
+  }
+};
+
+
+
+// Follow Podcast
+const followPodcast = async (req, res, next) => {
+  try {
+    const userId = req.headers.authorization;
+    const { podcastId } = req.params;
+
+    // Check Podcast Followers List
+    const podcast = await podcastmodel.findById(podcastId);
+
+    // Check if the user is already following the podcast
+    const followingIndex = podcast.followers.indexOf(userId);
+
+    if (followingIndex === -1) {
+      // Follow podcast
+      podcast.followers.push(userId);
+    } else {
+      // Unfollow podcast
+      podcast.followers.splice(followingIndex, 1);
+    }
+
+    // Save the updated podcast document
+    await podcast.save();
+
+    // Respond with success message based on follow/unfollow action
+    const message = followingIndex === -1 ? 'Following Podcast' : 'Unfollowed Podcast';
+
+    res.status(200).json({
+      status: 'success',
+      message: message
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+const ratePodcast = async (req, res) => {
+  try {
+    const { podcastId } = req.params;
+    const { rating } = req.body;
+
+    // Find the podcast by ID
+    const podcast = await podcastmodel.findById(podcastId);
+
+    if (!podcast) {
+      return res.status(404).json({ status: 'fail', message: 'Podcast not found' });
+    }
+
+    // Update totalRating and numberOfRatings
+    podcast.totalRating += rating;
+    podcast.numberOfRatings += 1;
+
+    // Calculate the average rating
+    const averageRating = podcast.totalRating / podcast.numberOfRatings;
+    // Round the averageRating to one decimal place
+    const finalrating = parseFloat(averageRating.toFixed(1));
+
+
+    // Save the updated podcast document
+    await podcast.save();
+
+    res.status(200).json({ status: 'success', message: 'Podcast rated successfully', rating:finalrating });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
   }
 };
 
 
 
 
+
+
 export {
-    newEpisode,
-    newpodcast,
-    deletePodcast,
-    updatePodcast,
-    updateEpisode,
-    deleteEpisode,
-    podcastByCategory,
-    podcastById,
-    search
+  newEpisode,
+  newpodcast,
+  deletePodcast,
+  updatePodcast,
+  updateEpisode,
+  deleteEpisode,
+  podcastByCategory,
+  podcastById,
+  search,
+  followPodcast,
+  ratePodcast
 };

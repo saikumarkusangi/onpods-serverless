@@ -103,10 +103,10 @@ const sendCreateAccountOTP = (email) => {
     // Send the OTP via email
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-            console.error('Error sending OTP:', error);
+         
             throw error;
         } else {
-            console.log('OTP sent:', info.response);
+          
         }
     });
 
@@ -199,10 +199,10 @@ const sendForgotPasswordOTP = (email) => {
     // Send the OTP via email
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
-            console.error('Error sending OTP:', error);
+       
             throw error;
         } else {
-            console.log('OTP sent:', info.response);
+          
         }
     });
 

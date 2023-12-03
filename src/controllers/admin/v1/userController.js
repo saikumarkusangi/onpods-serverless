@@ -101,7 +101,7 @@ export const deleteUser = async (req, res) => {
             imageKeys.map((objectKey) => deleteImageFromS3(objectKey))
         );
     } catch (error) {
-        console.error('Error deleting quotes from S3:', error);
+      
         return res.status(500).json({
             status: 'error',
             message: 'Error deleting user quotes from S3'
@@ -111,7 +111,7 @@ export const deleteUser = async (req, res) => {
     try {
         await quoteModel.deleteMany({ userId: userId });
     } catch (error) {
-        console.error('Error deleting quotes:', error);
+       
         return res.status(500).json({
             status: 'error',
             message: 'Error deleting user quotes'

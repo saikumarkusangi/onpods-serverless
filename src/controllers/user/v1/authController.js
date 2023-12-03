@@ -90,7 +90,7 @@ export const login = async (req, res) => {
       });
     }
   } catch (err) {
-    console.error(err);
+  
     return res.status(500).json({
       status: "error",
       message: "Server error",
@@ -133,7 +133,7 @@ export const sendCreateAccountOtp = async (req, res) => {
   try {
     const { email } = req.body;
     const response = sendCreateAccountOTP(email);
-    console.log(response);
+ 
     return res.status(200).json({
       status: "success",
       message: "OTP Sent Successfully",
@@ -157,7 +157,7 @@ export const sendForgotPasswordOtp = async (req, res) => {
       });
     }
     const response = sendForgotPasswordOTP(email);
-    console.log(response);
+
     return res.status(200).json({
       status: "success",
       message: "OTP Sent Successfully",
@@ -187,7 +187,7 @@ export const resetPassword = async (req, res) => {
         message: "User not found",
       });
     }
-    console.log(response);
+ 
     return res.status(200).json({
       status: "success",
       message: "Password Updated Successfully",

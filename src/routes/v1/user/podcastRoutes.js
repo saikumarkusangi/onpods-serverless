@@ -14,11 +14,13 @@ router.post('/:podcastId/add-episode', podcastmulter.fields([
     { name: 'posterUrl', maxCount: 1 }
   ]), podcastRoutes.newEpisode);
 router.delete('/delete/:podcastId', podcastRoutes.deletePodcast);
-router.delete('/:podcastId/episode/:episodeId/delete', podcastRoutes.deleteEpisode);
+router.delete('/:podcastId/episode/:episodeId', podcastRoutes.deleteEpisode);
 router.put('/:podcastId/update', podcastRoutes.updatePodcast);
-router.put('/:podcastId/episode/:episodeId/update', podcastRoutes.updateEpisode);
+router.put('/:podcastId/episode/:episodeId', podcastRoutes.updateEpisode);
 router.get('/category/:category', podcastRoutes.podcastByCategory)
 router.get('/id/:podcastId', podcastRoutes.podcastById)
 router.get('/search', podcastRoutes.search);
+router.get('/follow/:podcastId',podcastRoutes.followPodcast);
+router.put('/:podcastId/rate',podcastRoutes.ratePodcast)
 
 export default router;

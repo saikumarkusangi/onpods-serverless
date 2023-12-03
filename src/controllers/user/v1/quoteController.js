@@ -33,7 +33,7 @@ const uploadQuote = async (req, res) => {
 // get quotes by category
 
 const getQuotesByCategory = async (req, res) => {
-    console.log('ddd');
+  
     try {
         const { category } = req.params;
         const { limit, page } = req.query;

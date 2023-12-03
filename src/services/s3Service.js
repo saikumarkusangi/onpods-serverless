@@ -53,15 +53,11 @@ const deleteEpisodeFromS3 = async (url) => {
     };
 
     s3.deleteObject(params, function (err, data) {
-      if (err) console.log(err, err.stack);
-      else {
-        console.log('Delete Success', data);
-
-      }
+     
     });
     return true
   } catch (error) {
-    console.error(`Error deleting Podcast from S3: ${error}`);
+   
   }
   }
   return Promise.resolve(); // Return a resolved promise if there is no URL
@@ -94,15 +90,12 @@ const deleteImageFromS3 = async (objectKey) => {
     };
 
     s3.deleteObject(params, function (err, data) {
-      if (err) console.log(err, err.stack);
-      else {
-        console.log('Delete Success', data);
-
-      }
+     
+      
     });
     return true
   } catch (error) {
-    console.error(`Error deleting image from S3: ${error}`);
+    
   }
 };
 
@@ -115,15 +108,11 @@ const deleteProfilePicFromS3 = async (objectKey) => {
     };
 
     s3.deleteObject(params, function (err, data) {
-      if (err) console.log(err, err.stack);
-      else {
-        console.log('Delete Success', data);
-
-      }
+     
     });
     return true
   } catch (error) {
-    console.error(`Error deleting image from S3: ${error}`);
+    
   }
 };
 
