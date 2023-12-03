@@ -11,27 +11,33 @@ const podcastSchema = new Schema({
     createdAt: {
         type: Date,
     },
-    followers:[{
-        _id: false,
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'user',
-    }],
+    followers: [{
+            _id: false,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'user',
+        },
+
+    ],
     totalRating: {
-        type:Number,
-        default:0
+        type: Number,
+        default: 0
     },
-    numberOfRatings:{
-        type:Number,
-        default:0
+    numberOfRatings: {
+        type: Number,
+        default: 0
     },
-    title:String,
-    description:String,
-    episodes:[{
-        title:{ type:String },
-        description:{ type:String },
-        audioUrl:{ type:String },
-        posterUrl:{ type:String }
-      }]
+    title: String,
+    description: String,
+    episodes: [{
+        title: { type: String },
+        description: { type: String },
+        audioUrl: { type: String },
+        posterUrl: { type: String },
+        // createdAt: {
+        //     type: Date,
+        //     default: Date.now()
+        // },
+    }]
 }, {
     versionKey: false,
     timestamps: {
@@ -45,7 +51,7 @@ const podcastSchema = new Schema({
 const podcastCategoriesSchema = new Schema({
     name: String,
     imageUrl: String,
-    color:String
+    color: String
 
 }, {
     versionKey: false,
@@ -53,22 +59,20 @@ const podcastCategoriesSchema = new Schema({
 });
 
 const podcastBgCategoriesSchema = new Schema({
-  category:String,
-  data:[
-    {
-        name:String,
-        audioUrl:String
-    }
-  ]
+    category: String,
+    data: [{
+        name: String,
+        audioUrl: String
+    }]
 
-},{
-    versionKey:false,
-    timestamps:false
+}, {
+    versionKey: false,
+    timestamps: false
 })
 
 
 const podcastmodel = model('podcast', podcastSchema);
 const podcastCategoriesModel = model('podcat-categories', podcastCategoriesSchema);
-const podcastBgCategoriesModel = model('podcast-bg-categories',podcastBgCategoriesSchema);
+const podcastBgCategoriesModel = model('podcast-bg-categories', podcastBgCategoriesSchema);
 
-export { podcastmodel, podcastCategoriesModel,podcastBgCategoriesModel };
+export { podcastmodel, podcastCategoriesModel, podcastBgCategoriesModel };
