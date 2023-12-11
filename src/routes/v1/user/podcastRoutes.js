@@ -22,6 +22,7 @@ router.get('/id/:podcastId', podcastRoutes.podcastById);
 router.get('/user/:userId', podcastRoutes.podcastsByUserId)
 router.get('/search', podcastRoutes.search);
 router.get('/follow/:podcastId', podcastRoutes.followPodcast);
-router.put('/:podcastId/rate', podcastRoutes.ratePodcast)
-
+router.put('/:podcastId/rate', podcastRoutes.ratePodcast);
+router.get('/:podcastId/episodes/:episodeId/listen', podcastRoutes.listenEpisode);
+router.get('/trending', podcastRoutes.trendingPodcasts);
 export default router;

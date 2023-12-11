@@ -26,6 +26,7 @@ const podcastSchema = new Schema({
         type: Number,
         default: 0
     },
+
     title: String,
     description: String,
     episodes: [{
@@ -33,10 +34,14 @@ const podcastSchema = new Schema({
         description: { type: String },
         audioUrl: { type: String },
         posterUrl: { type: String },
-        // createdAt: {
-        //     type: Date,
-        //     default: Date.now()
-        // },
+        createdAt: {
+            type: Date,
+            default: Date.now()
+        },
+        listens: {
+            type: Number,
+            default: 0
+        },
     }]
 }, {
     versionKey: false,

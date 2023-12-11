@@ -51,33 +51,37 @@ const podcastById = async(req, res) => {
 // Get Podcasts by userId
 const podcastsByUserId = async(req, res) => {
     const { userId } = req.params;
-    try {
-        // Retrieve podcast data and user following information in parallel
-        const [data] = await Promise.all([
-            podcastmodel.findOne({ userId: userId }).exec(),
-        ]);
 
-        if (!data) {
+    try {
+        // Retrieve podcast data based on userId
+        const data = await podcastmodel.find({ userId: userId });
+
+        if (!data || data.length === 0) {
             return res.status(404).json({
                 status: 'fail',
-                message: 'Podcasts not found'
+                message: 'Podcasts not found',
             });
         }
 
-        const response = {
-            podcastId: data._id,
-            posterUrl: data.posterUrl,
-            title: data.title
-        };
+        // Assuming you want to send an array of podcasts in the response
+        const response = data.map((podcast) => ({
+            podcastId: podcast._id,
+            posterUrl: podcast.posterUrl,
+            title: podcast.title,
+            description: podcast.description,
+        }));
 
         res.status(200).json(response);
     } catch (error) {
+        console.error(error); // Log the error for debugging purposes
         return res.status(500).json({
             status: 'error',
-            message: `${error}`
+            message: 'Internal server error',
         });
     }
 };
+
+
 
 
 // Controller to get podcast by category
@@ -154,7 +158,8 @@ const newpodcast = async(req, res) => {
 
         res.status(200).json({
             status: 'success',
-            message: 'Podcast created successfully'
+            podcastId: newPodcast._id,
+            posterUrl: newPodcast.posterUrl
         });
     } catch (error) {
 
@@ -175,6 +180,8 @@ const newEpisode = async(req, res) => {
         }
 
         const { audioUrl, posterUrl } = req.files;
+
+
 
         const newEpisode = {
             title,
@@ -418,6 +425,8 @@ const followPodcast = async(req, res, next) => {
         res.status(500).json({ status: 'error', message: error.message });
     }
 };
+
+// controller to rate podcast
 const ratePodcast = async(req, res) => {
     try {
         const { podcastId } = req.params;
@@ -451,6 +460,87 @@ const ratePodcast = async(req, res) => {
 
 
 
+// controller to listened increment podcast
+const listenEpisode = async(req, res) => {
+    const { podcastId, episodeId } = req.params;
+
+    try {
+        // Find the podcast by ID and the specific episode within it
+        const podcast = await podcastmodel.findById(podcastId);
+
+        if (!podcast) {
+            return res.status(404).json({ message: 'Podcast not found' });
+        }
+
+        const episode = podcast.episodes.id(episodeId);
+
+        if (!episode) {
+            return res.status(404).json({ message: 'Episode not found' });
+        }
+
+        // Increment the listens count for the episode
+        episode.listens += 1;
+
+        // Save the changes to the parent podcast document
+        await podcast.save();
+
+        res.json({ message: 'Listen count updated successfully', listens: episode.listens });
+    } catch (error) {
+        console.error('Error updating listen count:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
+
+// trending podcasts
+const trendingPodcasts = async(req, res) => {
+    try {
+        // Find the top 10 trending podcasts
+        const data = await podcastmodel.aggregate([{
+                $project: {
+                    userId: 1,
+                    posterUrl: 1,
+                    title: 1,
+                    description: 1,
+                    episodes: 1,
+                    totalListens: { $sum: '$episodes.listens' }
+                }
+            },
+            {
+                $sort: { totalListens: -1 }
+            },
+            {
+                $limit: 10
+            }
+        ]);
+
+        // Check if there are trending podcasts
+        if (data.length > 0) {
+            // Map the data to the desired response format
+            const response = data.map(podcast => ({
+                podcastId: podcast._id,
+                userId: podcast.userId,
+                title: podcast.title,
+                description: podcast.description,
+                poster: podcast.posterUrl
+            }));
+
+            res.status(200).json(response);
+        } else {
+            res.status(404).json({
+                status: 'fail',
+                message: 'No trending podcasts found'
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching trending podcasts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Internal Server Error'
+        });
+    }
+};
+
 
 
 
@@ -466,5 +556,7 @@ export {
     search,
     followPodcast,
     ratePodcast,
-    podcastsByUserId
+    podcastsByUserId,
+    listenEpisode,
+    trendingPodcasts
 };
