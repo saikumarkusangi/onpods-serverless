@@ -3,12 +3,11 @@ import usermodel from '../../../models/userModel.js';
 import { deleteEpisodeFromS3 } from '../../../services/s3Service.js';
 
 // Get Podcast by id
-const podcastById = async(req, res) => {
+const podcastById = async (req, res) => {
     const { podcastId } = req.params;
     const userId = req.headers.authorization;
 
     try {
-        // Retrieve podcast data and user following information in parallel
         const [data, userFollowing] = await Promise.all([
             podcastmodel.findById(podcastId).lean().exec(),
             podcastmodel.findOne({ _id: podcastId, followers: userId }).lean().exec(),
@@ -21,14 +20,17 @@ const podcastById = async(req, res) => {
             });
         }
 
-        const following = !!userFollowing; // Convert to boolean
-        // Calculate the average rating
+        const following = !!userFollowing;
         const averageRating = data.totalRating / data.numberOfRatings;
-        // Round the averageRating to one decimal place
         const rating = parseFloat(averageRating.toFixed(1));
-
+        // const totalListens = data.episodes.reduce((sum, episode) => {
+        //     const listens = episode.listens || 0;
+        //     return sum + listens;
+        // }, 0);
+        const user = await usermodel.findById(data.userId).select('username profilePic').lean().exec();
         const response = {
-            userId: data.userId,
+            user: user,
+            categoryId: data.category,
             createdAt: data.createdAt,
             followers: data.followers.length,
             following: following,
@@ -49,7 +51,7 @@ const podcastById = async(req, res) => {
 
 
 // Get Podcasts by userId
-const podcastsByUserId = async(req, res) => {
+const podcastsByUserId = async (req, res) => {
     const { userId } = req.params;
 
     try {
@@ -85,7 +87,7 @@ const podcastsByUserId = async(req, res) => {
 
 
 // Controller to get podcast by category
-const podcastByCategory = async(req, res) => {
+const podcastByCategory = async (req, res) => {
     const { category } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
@@ -94,7 +96,7 @@ const podcastByCategory = async(req, res) => {
             $match: {
                 category: category,
             },
-        }, ];
+        },];
 
         const countPipeline = [...matchPipeline, { $count: 'count' }];
 
@@ -139,9 +141,13 @@ const podcastByCategory = async(req, res) => {
 };
 
 // Controller to add a new podcast
-const newpodcast = async(req, res) => {
+const newpodcast = async (req, res) => {
     try {
-        const posterUrl = req.file.location;
+        let posterUrl = '';
+        if (req.file && req.file.location) {
+            posterUrl = req.file.location;
+        }
+
         const { userId, category, title, description } = req.body;
 
         // Create a new podcast instance
@@ -168,7 +174,7 @@ const newpodcast = async(req, res) => {
 };
 
 // Controller to add a new episode to an existing podcast
-const newEpisode = async(req, res) => {
+const newEpisode = async (req, res) => {
     try {
         const { title, description } = req.body;
         const { podcastId } = req.params;
@@ -193,8 +199,8 @@ const newEpisode = async(req, res) => {
         // Push the new episode to the episodes array of the existing podcast
         const updatedPodcast = await podcastmodel.findByIdAndUpdate(
             podcastId, {
-                $push: { episodes: newEpisode },
-            }, { new: true }
+            $push: { episodes: newEpisode },
+        }, { new: true }
         );
 
         res.status(200).json({
@@ -209,7 +215,7 @@ const newEpisode = async(req, res) => {
 
 
 // Controller to delete a podcast by ID
-const deletePodcast = async(req, res) => {
+const deletePodcast = async (req, res) => {
     try {
         const { podcastId } = req.params;
 
@@ -223,7 +229,7 @@ const deletePodcast = async(req, res) => {
 
         // Delete every episode associated with the podcast
         await Promise.all(
-            podcast.episodes.map(async(episode) => {
+            podcast.episodes.map(async (episode) => {
                 await Promise.all([
                     deleteEpisodeFromS3(episode.audioUrl),
                     deleteEpisodeFromS3(episode.posterUrl),
@@ -243,7 +249,7 @@ const deletePodcast = async(req, res) => {
 
 
 // Controller to delete an episode from a podcast by ID
-const deleteEpisode = async(req, res) => {
+const deleteEpisode = async (req, res) => {
     const { podcastId, episodeId } = req.params;
 
     try {
@@ -271,8 +277,8 @@ const deleteEpisode = async(req, res) => {
 
         const category = await podcastmodel.findByIdAndUpdate(
             podcastId, {
-                $pull: { episodes: { _id: episodeId } },
-            }, { new: true }
+            $pull: { episodes: { _id: episodeId } },
+        }, { new: true }
         );
 
         res.status(200).json({
@@ -286,7 +292,7 @@ const deleteEpisode = async(req, res) => {
 };
 
 // Controller to update a podcast by ID
-const updatePodcast = async(req, res) => {
+const updatePodcast = async (req, res) => {
     try {
         const { podcastId } = req.params;
         const { title, description, category } = req.body;
@@ -314,7 +320,7 @@ const updatePodcast = async(req, res) => {
 
 
 // Controller to update an episode by ID
-const updateEpisode = async(req, res) => {
+const updateEpisode = async (req, res) => {
     try {
         const { podcastId, episodeId } = req.params;
         const { title, description } = req.body;
@@ -354,7 +360,7 @@ const updateEpisode = async(req, res) => {
 
 
 // search
-const search = async(req, res) => {
+const search = async (req, res) => {
     try {
         const { query } = req.query;
 
@@ -392,7 +398,7 @@ const search = async(req, res) => {
 
 
 // Follow Podcast
-const followPodcast = async(req, res, next) => {
+const followPodcast = async (req, res, next) => {
     try {
         const userId = req.headers.authorization;
         const { podcastId } = req.params;
@@ -427,7 +433,7 @@ const followPodcast = async(req, res, next) => {
 };
 
 // controller to rate podcast
-const ratePodcast = async(req, res) => {
+const ratePodcast = async (req, res) => {
     try {
         const { podcastId } = req.params;
         const { rating } = req.body;
@@ -461,7 +467,7 @@ const ratePodcast = async(req, res) => {
 
 
 // controller to listened increment podcast
-const listenEpisode = async(req, res) => {
+const listenEpisode = async (req, res) => {
     const { podcastId, episodeId } = req.params;
 
     try {
@@ -493,39 +499,60 @@ const listenEpisode = async(req, res) => {
 
 
 // trending podcasts
-const trendingPodcasts = async(req, res) => {
+const trendingPodcasts = async (req, res) => {
     try {
-        // Find the top 10 trending podcasts
+        const { page = 1, limit = 10 } = req.query;
+
+        // Convert page and limit to numbers
+        const pageNumber = parseInt(page);
+        const limitNumber = parseInt(limit);
+
+        // Calculate the number of documents to skip
+        const skip = (pageNumber - 1) * limitNumber;
+
+        // Find the top trending podcasts with pagination
         const data = await podcastmodel.aggregate([{
-                $project: {
-                    userId: 1,
-                    posterUrl: 1,
-                    title: 1,
-                    description: 1,
-                    episodes: 1,
-                    totalListens: { $sum: '$episodes.listens' }
-                }
-            },
-            {
-                $sort: { totalListens: -1 }
-            },
-            {
-                $limit: 10
+            $project: {
+
+                posterUrl: 1,
+                title: 1,
+                description: 1,
+                totalListens: { $sum: '$episodes.listens' }
             }
+        },
+        {
+            $match: { totalListens: { $gt: 10 } }
+        },
+        {
+            $sort: { totalListens: -1 }
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: limitNumber
+        }
         ]);
 
-        // Check if there are trending podcasts
+        const totalCount = await podcastmodel.countDocuments();
+
         if (data.length > 0) {
-            // Map the data to the desired response format
+            const totalPages = Math.ceil(totalCount / limitNumber);
+
             const response = data.map(podcast => ({
-                podcastId: podcast._id,
+                _id: podcast._id,
                 userId: podcast.userId,
                 title: podcast.title,
                 description: podcast.description,
-                poster: podcast.posterUrl
+                posterUrl: podcast.posterUrl
             }));
 
-            res.status(200).json(response);
+            res.status(200).json({
+                count: data.length,
+                data: response,
+                totalPages,
+                page: pageNumber
+            });
         } else {
             res.status(404).json({
                 status: 'fail',
@@ -540,6 +567,9 @@ const trendingPodcasts = async(req, res) => {
         });
     }
 };
+
+
+
 
 
 
