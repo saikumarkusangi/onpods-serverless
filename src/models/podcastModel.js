@@ -26,6 +26,15 @@ const podcastSchema = new Schema({
         type: Number,
         default: 0
     },
+    certificate:{
+        type:String,
+        enum:[
+            'U',
+            'U/A 13+',
+            'U/A 16+',
+            'A 18+'
+        ]
+    },
 
     title: String,
     description: String,

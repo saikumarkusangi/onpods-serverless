@@ -2,7 +2,6 @@ import { podcastCategoriesModel, podcastmodel } from '../../../models/podcastMod
 import usermodel from '../../../models/userModel.js';
 import { deleteEpisodeFromS3 } from '../../../services/s3Service.js';
 
-// Get Podcast by id
 const podcastById = async (req, res) => {
     const { podcastId } = req.params;
     const userId = req.headers.authorization;
@@ -23,21 +22,43 @@ const podcastById = async (req, res) => {
         const following = !!userFollowing;
         const averageRating = data.totalRating / data.numberOfRatings;
         const rating = parseFloat(averageRating.toFixed(1));
-        // const totalListens = data.episodes.reduce((sum, episode) => {
-        //     const listens = episode.listens || 0;
-        //     return sum + listens;
-        // }, 0);
+        const totalListens = data.episodes.reduce((sum, episode) => {
+            const listens = episode.listens || 0;
+            return sum + listens;
+        }, 0);
+
         const user = await usermodel.findById(data.userId).select('username profilePic').lean().exec();
+
+        // Shorten the followers count and total listens count
+        const followersCountShortened = data.followers.length > 1000
+            ? data.followers.length > 1000000
+                ? `${(data.followers.length / 1000000).toFixed(1)}M`
+                : `${(data.followers.length / 1000).toFixed(1)}K`
+            : `${data.followers.length}`;
+
+        const numberOfRatingShortened = data.numberOfRatings > 1000
+            ? data.numberOfRatings > 1000000
+                ? `${(data.numberOfRatings / 1000000).toFixed(1)}M`
+                : `${(data.numberOfRatings / 1000).toFixed(1)}K`
+            : `${data.numberOfRatings}`;
+
+        const totalListensShortened = totalListens > 1000
+            ? totalListens > 1000000
+                ? `${(totalListens / 1000000).toFixed(1)}M`
+                : `${(totalListens / 1000).toFixed(1)}K`
+            : `${totalListens}`;
+
         const response = {
             user: user,
             categoryId: data.category,
             createdAt: data.createdAt,
-            followers: data.followers.length,
+            followers: followersCountShortened ?? '0',
             following: following,
-            rating,
-            rated: data.numberOfRatings,
+            rating:rating ,
+            rated: numberOfRatingShortened,
+            certificate: data.certificate,
+            totalListens: totalListensShortened ?? '0',
             episodes: data.episodes,
-
         };
 
         res.status(200).json(response);
@@ -50,12 +71,86 @@ const podcastById = async (req, res) => {
 };
 
 
+const topPodcasts = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+
+        // Convert page and limit to numbers
+        const pageNumber = parseInt(page);
+        const limitNumber = parseInt(limit);
+
+        // Calculate the number of documents to skip
+        const skip = (pageNumber - 1) * limitNumber;
+
+        // Find the top trending podcasts with pagination
+        const data = await podcastmodel.aggregate([
+            {
+                $project: {
+                    posterUrl: 1,
+                    title: 1,
+                    description: 1,
+                    averageRating: { $avg: '$ratings.rating' }
+                }
+            },
+            {
+                $match: { averageRating: { $gt: 0 } }
+            },
+            {
+                $sort: { averageRating: -1 }
+            },
+            {
+                $skip: skip
+            },
+            {
+                $limit: limitNumber
+            }
+        ]);
+
+        const totalCount = await podcastmodel.countDocuments();
+
+        if (data.length > 0) {
+            const filteredData = data.filter(podcast => !isNaN(podcast.averageRating));
+
+            const totalPages = Math.ceil(filteredData.length / limitNumber);
+
+            const response = filteredData.map(podcast => ({
+                _id: podcast._id,
+                userId: podcast.userId,
+                title: podcast.title,
+                description: podcast.description,
+                posterUrl: podcast.posterUrl,
+                averageRating: podcast.averageRating
+            }));
+
+            res.status(200).json({
+                count: response.length,
+                data: response,
+                totalPages,
+                page: pageNumber
+            });
+        } else {
+            res.status(404).json({
+                status: 'fail',
+                message: 'No trending podcasts found'
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching trending podcasts:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Internal Server Error'
+        });
+    }
+};
+
+
+
 // Get Podcasts by userId
 const podcastsByUserId = async (req, res) => {
     const { userId } = req.params;
 
     try {
-        // Retrieve podcast data based on userId
+
         const data = await podcastmodel.find({ userId: userId });
 
         if (!data || data.length === 0) {
@@ -65,7 +160,7 @@ const podcastsByUserId = async (req, res) => {
             });
         }
 
-        // Assuming you want to send an array of podcasts in the response
+
         const response = data.map((podcast) => ({
             podcastId: podcast._id,
             posterUrl: podcast.posterUrl,
@@ -75,7 +170,7 @@ const podcastsByUserId = async (req, res) => {
 
         res.status(200).json(response);
     } catch (error) {
-        console.error(error); // Log the error for debugging purposes
+        console.error(error);
         return res.status(500).json({
             status: 'error',
             message: 'Internal server error',
@@ -148,7 +243,7 @@ const newpodcast = async (req, res) => {
             posterUrl = req.file.location;
         }
 
-        const { userId, category, title, description } = req.body;
+        const { userId, category, title, description ,certificate} = req.body;
 
         // Create a new podcast instance
         const newPodcast = new podcastmodel({
@@ -157,6 +252,7 @@ const newpodcast = async (req, res) => {
             category,
             title,
             description,
+            certificate
         });
 
         // Save the new podcast to the database
@@ -295,7 +391,7 @@ const deleteEpisode = async (req, res) => {
 const updatePodcast = async (req, res) => {
     try {
         const { podcastId } = req.params;
-        const { title, description, category } = req.body;
+        const { title, description, category,certificate } = req.body;
 
         // Check if the podcast exists
         const existingPodcast = await podcastmodel.findByIdAndUpdate(
@@ -362,38 +458,84 @@ const updateEpisode = async (req, res) => {
 // search
 const search = async (req, res) => {
     try {
-        const { query } = req.query;
+        const {
+            query,
+            user_page = 1,
+            user_limit = 10,
+            podcasts_page = 1,
+            podcasts_limit = 10,
+            episodes_page = 1,
+            episodes_limit = 10,
+        } = req.query;
+
+        // Function to paginate an array
+        const paginate = (array, page, limit) => {
+            const startIndex = (page - 1) * limit;
+            const endIndex = page * limit;
+            return array.slice(startIndex, endIndex);
+        };
 
         // Search for podcasts, episodes, and users based on the query
         const [podcasts, episodes, users] = await Promise.all([
-            podcastmodel.find({
-                $or: [
-                    { title: { $regex: query, $options: 'i' } },
-                    { description: { $regex: query, $options: 'i' } },
-                ],
-            }).select('_id posterUrl title description'),
-            podcastmodel.find({
-                episodes: {
-                    $elemMatch: {
-                        $or: [
-                            { title: { $regex: query, $options: 'i' } }, // Case-insensitive title search
-                            { description: { $regex: query, $options: 'i' } }, // Case-insensitive description search
-                        ],
+            podcastmodel
+                .find({
+                    $or: [
+                        { title: { $regex: query, $options: 'i' } },
+                        { description: { $regex: query, $options: 'i' } },
+                    ],
+                })
+                .select('_id posterUrl title description')
+                .limit(podcasts_limit)
+                .skip((podcasts_page - 1) * podcasts_limit),
+            podcastmodel
+                .find({
+                    episodes: {
+                        $elemMatch: {
+                            $or: [
+                                { title: { $regex: query, $options: 'i' } },
+                                { description: { $regex: query, $options: 'i' } },
+                            ],
+                        },
                     },
-                },
-            }).select('posterUrl episodes'),
-            await usermodel.find({ username: { $regex: query, $options: 'i' } }).select('username _id'), // Case-insensitive username search
+                })
+                .select('posterUrl episodes title')
+                .limit(podcasts_limit)
+                .skip((podcasts_page - 1) * podcasts_limit),
+            usermodel
+                .find({ username: { $regex: query, $options: 'i' } })
+                .select('username _id')
+                .limit(user_limit)
+                .skip((user_page - 1) * user_limit), // Case-insensitive username search
         ]);
 
+        // Extract clean episodes data
+        const cleanedEpisodes = episodes.map((podcast) => {
+            return {
+                ...podcast.toObject(), // Convert Mongoose document to a plain object
+                episodes: paginate(
+                    podcast.episodes.filter(
+                        (episode) =>
+                            episode.title.toLowerCase().includes(query.toLowerCase()) ||
+                            episode.description.toLowerCase().includes(query.toLowerCase())
+                    ),
+                    episodes_page,
+                    episodes_limit
+                ), // Apply slice to limit the number of episodes
+            };
+        });
+
         res.status(200).json({
-            podcasts,
-            episodes,
-            users,
+            podcasts: paginate(podcasts, podcasts_page, podcasts_limit),
+            episodes: cleanedEpisodes,
+            users: paginate(users, user_page, user_limit),
         });
     } catch (error) {
         res.status(404).json({ message: `${error}` });
     }
 };
+
+
+
 
 
 
@@ -452,14 +594,17 @@ const ratePodcast = async (req, res) => {
         // Calculate the average rating
         const averageRating = podcast.totalRating / podcast.numberOfRatings;
         // Round the averageRating to one decimal place
+
         const finalrating = parseFloat(averageRating.toFixed(1));
 
+        podcast.totalRating = finalrating
 
         // Save the updated podcast document
         await podcast.save();
 
-        res.status(200).json({ status: 'success', message: 'Podcast rated successfully', rating: finalrating });
+        res.status(200).json({ status: 'success', message: 'Podcast rated successfully' });
     } catch (error) {
+        console.log(error.message);
         res.status(500).json({ status: 'error', message: error.message });
     }
 };
@@ -507,31 +652,31 @@ const trendingPodcasts = async (req, res) => {
         const pageNumber = parseInt(page);
         const limitNumber = parseInt(limit);
 
-        // Calculate the number of documents to skip
+        // Validate page and limit values
+
         const skip = (pageNumber - 1) * limitNumber;
 
-        // Find the top trending podcasts with pagination
-        const data = await podcastmodel.aggregate([{
-            $project: {
-
-                posterUrl: 1,
-                title: 1,
-                description: 1,
-                totalListens: { $sum: '$episodes.listens' }
-            }
-        },
-        {
-            $match: { totalListens: { $gt: 10 } }
-        },
-        {
-            $sort: { totalListens: -1 }
-        },
-        {
-            $skip: skip
-        },
-        {
-            $limit: limitNumber
-        }
+        const data = await podcastmodel.aggregate([
+            {
+                $project: {
+                    posterUrl: 1,
+                    title: 1,
+                    description: 1,
+                    totalListens: { $sum: '$episodes.listens' },
+                },
+            },
+            {
+                $match: { totalListens: { $gt: 1 } },
+            },
+            {
+                $sort: { totalListens: -1 },
+            },
+            {
+                $skip: skip,
+            },
+            {
+                $limit: limitNumber,
+            },
         ]);
 
         const totalCount = await podcastmodel.countDocuments();
@@ -539,31 +684,31 @@ const trendingPodcasts = async (req, res) => {
         if (data.length > 0) {
             const totalPages = Math.ceil(totalCount / limitNumber);
 
-            const response = data.map(podcast => ({
+            const response = data.map((podcast) => ({
                 _id: podcast._id,
                 userId: podcast.userId,
                 title: podcast.title,
                 description: podcast.description,
-                posterUrl: podcast.posterUrl
+                posterUrl: podcast.posterUrl,
             }));
 
             res.status(200).json({
-                count: data.length,
+                count: response.length,
                 data: response,
                 totalPages,
-                page: pageNumber
+                page: pageNumber,
             });
         } else {
             res.status(404).json({
                 status: 'fail',
-                message: 'No trending podcasts found'
+                message: 'No trending podcasts found',
             });
         }
     } catch (error) {
         console.error('Error fetching trending podcasts:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Internal Server Error'
+            message: 'Internal Server Error',
         });
     }
 };
@@ -588,5 +733,6 @@ export {
     ratePodcast,
     podcastsByUserId,
     listenEpisode,
-    trendingPodcasts
+    trendingPodcasts,
+    topPodcasts
 };

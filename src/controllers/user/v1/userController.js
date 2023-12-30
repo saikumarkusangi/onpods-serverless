@@ -42,7 +42,7 @@ const userInfo = async (req, res) => {
         const currentUserId = req.headers.authorization
 
         const user = await userModel.findById(id)
-            .select('email username followers profilePic following isPrivate verified');
+            .select('email username followers profilePic following isPrivate verified interests');
 
         if (!user) {
             return res.status(404).json({
@@ -65,7 +65,7 @@ const userInfo = async (req, res) => {
             username: user.username,
             followers: followersCount,
             following: followingCount,
-            private: user.private,
+            private: user.isPrivate,
             profilePic: user.profilePic,
             verified: user.verified,
             followed:followed !== -1 ? true : false
@@ -239,7 +239,7 @@ const userUpdate = async(req,res)=>{
             const result = await  deleteProfilePicFromS3(`${userId}.jpg`);
             data.profilePic = ''
         }
-   
+
         const user = await userModel.findByIdAndUpdate(userId,
          data,
         {
