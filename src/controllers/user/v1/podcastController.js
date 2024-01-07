@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import { podcastCategoriesModel, podcastmodel } from '../../../models/podcastModel.js';
+import userModel from '../../../models/userModel.js';
 import usermodel from '../../../models/userModel.js';
 import { deleteEpisodeFromS3 } from '../../../services/s3Service.js';
 
@@ -20,14 +22,20 @@ const podcastById = async (req, res) => {
         }
 
         const following = !!userFollowing;
-        const averageRating = data.totalRating / data.numberOfRatings;
-        const rating = parseFloat(averageRating.toFixed(1));
+
+        // Update totalRating with the actual rating
+        const averageRating = data.numberOfRatings > 0
+            ? (data.totalRating / data.numberOfRatings).toFixed(1)
+            : 0;
+
         const totalListens = data.episodes.reduce((sum, episode) => {
             const listens = episode.listens || 0;
             return sum + listens;
         }, 0);
 
         const user = await usermodel.findById(data.userId).select('username profilePic').lean().exec();
+        const currentUser = await usermodel.findById(userId).select('myList');
+        const addedToMyList = currentUser.myList.indexOf(podcastId) !== -1;
 
         // Shorten the followers count and total listens count
         const followersCountShortened = data.followers.length > 1000
@@ -54,11 +62,12 @@ const podcastById = async (req, res) => {
             createdAt: data.createdAt,
             followers: followersCountShortened ?? '0',
             following: following,
-            rating:rating ,
+            rating: parseFloat(averageRating),
             rated: numberOfRatingShortened,
             certificate: data.certificate,
             totalListens: totalListensShortened ?? '0',
             episodes: data.episodes,
+            addedToMyList
         };
 
         res.status(200).json(response);
@@ -69,7 +78,6 @@ const podcastById = async (req, res) => {
         });
     }
 };
-
 
 const topPodcasts = async (req, res) => {
     try {
@@ -180,18 +188,19 @@ const podcastsByUserId = async (req, res) => {
 
 
 
-
 // Controller to get podcast by category
 const podcastByCategory = async (req, res) => {
     const { category } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
     try {
-        const matchPipeline = [{
-            $match: {
-                category: category,
+        const matchPipeline = [
+            {
+                $match: {
+                    category: category,
+                },
             },
-        },];
+        ];
 
         const countPipeline = [...matchPipeline, { $count: 'count' }];
 
@@ -202,8 +211,10 @@ const podcastByCategory = async (req, res) => {
                     _id: 1,
                     posterUrl: 1,
                     title: 1,
-                    description: 1
-
+                    description: 1,
+                    totalListens: { $sum: '$episodes.listens' },
+                    numberOfRatings:1,
+                    totalRating:1
                 },
             },
             {
@@ -220,12 +231,27 @@ const podcastByCategory = async (req, res) => {
         const count = countResult.length > 0 ? countResult[0].count : 0;
         const totalPages = Math.ceil(count / limit);
 
+
+        // Transforming data
+        const transformedData = data.map(podcast => {
+            const averageRating = podcast.numberOfRatings > 0
+            ? (podcast.totalRating / podcast.numberOfRatings).toFixed(1)
+            : 0;
+            return ({
+                _id: podcast._id,
+                title: podcast.title,
+                description: podcast.description,
+                posterUrl: podcast.posterUrl,
+                totalListens: formatShortenedNumber(podcast.totalListens),
+                rating: formatShortenedNumber(averageRating),
+            });
+        });
+
         return res.status(200).json({
             count,
-            data,
+            data: transformedData,
             page: parseInt(page),
             totalPages,
-
         });
     } catch (error) {
         return res.status(404).json({
@@ -234,6 +260,17 @@ const podcastByCategory = async (req, res) => {
         });
     }
 };
+
+// Helper function to format shortened numbers
+const formatShortenedNumber = (value) => {
+    return value > 1000
+        ? value > 1000000
+            ? `${(value / 1000000).toFixed(1)}M`
+            : `${(value / 1000).toFixed(1)}K`
+        : `${value}`;
+};
+
+
 
 // Controller to add a new podcast
 const newpodcast = async (req, res) => {
@@ -415,6 +452,8 @@ const updatePodcast = async (req, res) => {
 };
 
 
+
+
 // Controller to update an episode by ID
 const updateEpisode = async (req, res) => {
     try {
@@ -472,7 +511,15 @@ const search = async (req, res) => {
         const paginate = (array, page, limit) => {
             const startIndex = (page - 1) * limit;
             const endIndex = page * limit;
-            return array.slice(startIndex, endIndex);
+            const slicedArray = array.slice(startIndex, endIndex);
+            const total_pages = Math.ceil(array.length / limit);
+            const current_page = page;
+
+            return {
+                items: slicedArray,
+                total_pages,
+                current_page,
+            };
         };
 
         // Search for podcasts, episodes, and users based on the query
@@ -503,7 +550,7 @@ const search = async (req, res) => {
                 .skip((podcasts_page - 1) * podcasts_limit),
             usermodel
                 .find({ username: { $regex: query, $options: 'i' } })
-                .select('username _id')
+                .select('username _id profilePic')
                 .limit(user_limit)
                 .skip((user_page - 1) * user_limit), // Case-insensitive username search
         ]);
@@ -512,15 +559,14 @@ const search = async (req, res) => {
         const cleanedEpisodes = episodes.map((podcast) => {
             return {
                 ...podcast.toObject(), // Convert Mongoose document to a plain object
-                episodes: paginate(
+                episodes:
                     podcast.episodes.filter(
                         (episode) =>
                             episode.title.toLowerCase().includes(query.toLowerCase()) ||
                             episode.description.toLowerCase().includes(query.toLowerCase())
                     ),
-                    episodes_page,
-                    episodes_limit
-                ), // Apply slice to limit the number of episodes
+
+                 // Apply slice to limit the number of episodes
             };
         });
 
@@ -533,10 +579,6 @@ const search = async (req, res) => {
         res.status(404).json({ message: `${error}` });
     }
 };
-
-
-
-
 
 
 // Follow Podcast
@@ -573,7 +615,6 @@ const followPodcast = async (req, res, next) => {
         res.status(500).json({ status: 'error', message: error.message });
     }
 };
-
 // controller to rate podcast
 const ratePodcast = async (req, res) => {
     try {
@@ -588,21 +629,20 @@ const ratePodcast = async (req, res) => {
         }
 
         // Update totalRating and numberOfRatings
-        podcast.totalRating += rating;
         podcast.numberOfRatings += 1;
+        podcast.totalRating += parseFloat(rating);
 
-        // Calculate the average rating
+        // Calculate the averageRating
         const averageRating = podcast.totalRating / podcast.numberOfRatings;
-        // Round the averageRating to one decimal place
-
-        const finalrating = parseFloat(averageRating.toFixed(1));
-
-        podcast.totalRating = finalrating
 
         // Save the updated podcast document
         await podcast.save();
 
-        res.status(200).json({ status: 'success', message: 'Podcast rated successfully' });
+        res.status(200).json({
+            status: 'success',
+            message: 'Podcast rated successfully',
+            averageRating
+        });
     } catch (error) {
         console.log(error.message);
         res.status(500).json({ status: 'error', message: error.message });
@@ -714,12 +754,75 @@ const trendingPodcasts = async (req, res) => {
 };
 
 
+// based on user interest podcasts
+const basedOnUserInterests = async (req, res) => {
+    try {
+        const userId = req.headers.authorization;
+        const user = await userModel.findById(userId);
+
+        let categoryPodcasts;
+
+        if (user.interests && user.interests.length > 0) {
+            // User has interests, fetch based on interests
+            categoryPodcasts = await Promise.all(user.interests.map(async (categoryId) => {
+                const podcasts = await podcastmodel.find({ category: categoryId })
+                    .select('posterUrl title description')
+                    .limit(1)
+                    .exec();
+
+                const currentUser = await usermodel.findById(userId).select('myList');
+
+                // Check if each podcast is added to the user's myList
+                const podcastsWithAddedToMyList = podcasts.map(podcast => {
+                    const addedToMyList = currentUser.myList.includes(podcast._id);
+                    return { ...podcast.toObject(), addedToMyList };
+                });
+
+                // Randomize the order of podcasts
+                const randomizedPodcasts = podcastsWithAddedToMyList.sort(() => Math.random() - 0.5);
+
+                return randomizedPodcasts;
+            }));
+        } else {
+            // User has no interests, fetch random podcasts
+            const randomPodcasts = await podcastmodel.aggregate([
+                { $sample: { size: 3 } },
+            ]);
+
+            const currentUser = await usermodel.findById(userId).select('myList');
+
+            // Check if the random podcast is added to the user's myList
+            const podcastsWithAddedToMyList = randomPodcasts.map(podcast => {
+                const addedToMyList = currentUser.myList.includes(podcast._id);
+                return { ...podcast, addedToMyList };
+            });
+
+            categoryPodcasts = [podcastsWithAddedToMyList];
+        }
+
+        // Flatten the nested arrays
+        const flattenedPodcasts = categoryPodcasts.flat();
+
+        res.status(200).json({
+            data: flattenedPodcasts
+        });
+    } catch (error) {
+        console.error('Error fetching podcasts based on user interests:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Internal Server Error',
+        });
+    }
+};
+
+
 
 
 
 
 
 export {
+    basedOnUserInterests,
     newEpisode,
     newpodcast,
     deletePodcast,

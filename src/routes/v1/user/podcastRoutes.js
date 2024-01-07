@@ -26,4 +26,7 @@ router.put('/:podcastId/rate', podcastRoutes.ratePodcast);
 router.get('/:podcastId/episodes/:episodeId/listen', podcastRoutes.listenEpisode);
 router.get('/trending', podcastRoutes.trendingPodcasts);
 router.get('/top', podcastRoutes.topPodcasts);
+router.get('/suggest',podcastRoutes.basedOnUserInterests);
+
+
 export default router;

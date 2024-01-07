@@ -9,4 +9,5 @@ router.get('/logout', authController.logout);
 router.post('/send-otp',authController.sendCreateAccountOtp);
 router.post('/forgot-password',authController.sendForgotPasswordOtp)
 router.post('/reset-passwprd',authController.resetPassword);
+router.delete('/delete',authController.deleteAccount);
 export default router;

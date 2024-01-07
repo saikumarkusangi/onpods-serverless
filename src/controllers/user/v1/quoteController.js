@@ -33,7 +33,7 @@ const uploadQuote = async (req, res) => {
 // get quotes by category
 
 const getQuotesByCategory = async (req, res) => {
-  
+
     try {
         const { category } = req.params;
         const { limit, page } = req.query;
@@ -171,7 +171,7 @@ const deleteQuote = async (req, res) => {
             await quoteModel.findByIdAndDelete(id);
             return res.status(200).json({
                 status: 'success',
-                message: 'Deleted Successfully'
+                message: 'Deleted FSuccessfully'
             });
         }
         else{
@@ -180,7 +180,7 @@ const deleteQuote = async (req, res) => {
                 message: 'Something went'
             });
         }
-       
+
     } catch (error) {
         return res.status(404).json({
             status: 'fail',

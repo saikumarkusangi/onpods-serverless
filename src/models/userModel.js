@@ -4,9 +4,13 @@ import bcrypt from 'bcrypt';
 const { Schema, model } = mongoose;
 
 const userSchema = new Schema({
-    username: { type: String, required: true },
-    password: { type: String, required: true },
-    email: { type: String, required: true },
+    username: String,
+    password: String,
+    email: String,
+    oauth: {
+        type: String,
+        default: ''
+    },
     profilePic: { type: String, default: '' },
     isPrivate: {
         type: Boolean,
@@ -24,11 +28,9 @@ const userSchema = new Schema({
             },
             userId: {
                 type: String,
-
             }
         },
     ],
-
     following: [
         {
             _id: false,
@@ -44,29 +46,28 @@ const userSchema = new Schema({
     ],
     deviceTokens: [
         {
-          type: String,
+            type: String,
         },
-      ],
-
+    ],
     requests: [
         {
             _id: false,
             type: mongoose.Schema.Types.ObjectId,
             ref: 'user',
-
         },
     ],
+    fcmToken:{type:String},
     isOnline: { type: Boolean, default: false },
     isActive: { type: Boolean },
     createdAt: { type: Date },
     updatedAt: { type: Date },
     interests: [],
+    myList: [],
     userType: {
         type: String,
         enum: ['User', 'Admin', 'Moderator'],
         default: 'User'
     },
-
 }, {
     timestamps: {
         createdAt: 'createdAt',
@@ -77,12 +78,17 @@ const userSchema = new Schema({
 
 userSchema.pre('save', async function (next) {
     this.isActive = true;
-    this.password = await bcrypt.hash(this.password, 8);
+
+    // Hash the password only if it is present
+    if (this.password) {
+        this.password = await bcrypt.hash(this.password, 8);
+    }
+
     next();
 });
 
 userSchema.methods.isPasswordMatched = async function (password) {
-    return await bcrypt.compare(password, this.password);
+    return !this.password || (await bcrypt.compare(password, this.password));
 };
 
 userSchema.method('toJSON', function () {
@@ -91,7 +97,6 @@ userSchema.method('toJSON', function () {
     } = this.toObject();
     object.id = _id;
     delete object.password;
-
 
     return object;
 }, { versionKey: false });

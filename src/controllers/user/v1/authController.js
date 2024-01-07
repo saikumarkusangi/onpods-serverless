@@ -1,9 +1,14 @@
+import e from "express";
+import userModel from "../../../models/userModel.js";
 import UserSchema from "../../../models/userModel.js";
 import {
   sendCreateAccountOTP,
   sendForgotPasswordOTP,
 } from "../../../services/nodeMailer.js";
 import bcrypt from "bcrypt";
+import { quoteModel } from "../../../models/quoteModel.js";
+import { podcastmodel } from "../../../models/podcastModel.js";
+import { deleteEpisodeFromS3, deleteImageFromS3 } from "../../../services/s3Service.js";
 
 /**
  * @description : User registration
@@ -17,6 +22,8 @@ export const register = async (req, res) => {
     const data = new UserSchema({
       ...req.body,
     });
+
+ 
 
     let findUser = await UserSchema.findOne({
       email: data.email,
@@ -53,28 +60,12 @@ export const register = async (req, res) => {
  */
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({
-      status: "fail",
-      message: "Email and password are required",
-    });
-  }
+  const { email, password,oauth } = req.body;
 
   try {
-    const user = await UserSchema.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({
-        status: "fail",
-        message: "User not found",
-      });
-    }
-
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
-
-    if (isPasswordMatch) {
+    if (oauth) {
+      const user = await UserSchema.findOne({ oauth });
+     if(user){
       return res.status(200).json({
         data: {
           username: user.username,
@@ -83,14 +74,42 @@ export const login = async (req, res) => {
           id: user.id,
         },
       });
-    } else {
-      return res.status(401).json({
-        status: "fail",
-        message: "Incorrect Password",
-      });
+     }else{
+    return  res.status(404).json({
+      message:'user not found'
+    })
+     }
+    }else{
+      const user = await UserSchema.findOne({ email });
+
+      if (!user || user.oauth !== '') {
+        return res.status(404).json({
+          status: "fail",
+          message: "User not found",
+        });
+      }
+
+      const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+      if (isPasswordMatch) {
+        return res.status(200).json({
+          data: {
+            username: user.username,
+            email: user.email,
+            userType: user.userType,
+            id: user.id,
+          },
+        });
+      } else {
+        return res.status(401).json({
+          status: "fail",
+          message: "Incorrect Password",
+        });
+      }
     }
+
   } catch (err) {
-  
+
     return res.status(500).json({
       status: "error",
       message: "Server error",
@@ -133,7 +152,7 @@ export const sendCreateAccountOtp = async (req, res) => {
   try {
     const { email } = req.body;
     const response = sendCreateAccountOTP(email);
- 
+
     return res.status(200).json({
       status: "success",
       message: "OTP Sent Successfully",
@@ -187,7 +206,7 @@ export const resetPassword = async (req, res) => {
         message: "User not found",
       });
     }
- 
+
     return res.status(200).json({
       status: "success",
       message: "Password Updated Successfully",
@@ -200,7 +219,67 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+export const deleteAccount = async (req, res) => {
+  const userId = req.headers.authorization;
+
+  try {
+    const user = await userModel.findById(userId);
+
+    if (user) {
+
+      // Delete quotes associated with the user
+      const quotes = await quoteModel.find({ userId: user._id });
+
+      const imageKeys = quotes.map(quote => {
+        const parts = quote.imageUrl.split('/');
+        return parts[parts.length - 1];
+    });
+
+    // Delete images from S3 in parallel
+    await Promise.all(imageKeys.map(objectKey => deleteImageFromS3(objectKey)));
+
+    // Delete quotes from MongoDB
+    await quoteModel.deleteMany({ userId: user._id });
+      // Delete podcasts associated with the user
+      const podcasts = await podcastmodel
+        .find({ userId: user._id })
+        .populate('episodes');
+
+
+      // Delete every episode associated with the podcasts
+      await Promise.all(
+        podcasts.map(async (podcast) => {
+          await Promise.all(
+            podcast.episodes.map(async (episode) => {
+              await Promise.all([
+                deleteEpisodeFromS3(episode.audioUrl),
+                deleteEpisodeFromS3(episode.posterUrl),
+              ]);
+            })
+          );
+        })
+      );
+
+      await podcastmodel.deleteMany({ userId: user._id });
+
+      await userModel.findByIdAndDelete(userId);
+
+      return res.status(200).json({
+          status: 'success',
+          message: 'Account deleted successfully',
+        });
+    }
+  } catch (err) {
+    return res.status(500).json({
+      status: 'error',
+      message: `${err}`,
+    });
+  }
+};
+
+
 export default {
+  deleteAccount,
   register,
   login,
   logout,

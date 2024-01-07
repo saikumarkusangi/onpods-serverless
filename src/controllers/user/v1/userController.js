@@ -2,6 +2,7 @@ import { quoteModel } from "../../../models/quoteModel.js";
 import userModel from "../../../models/userModel.js";
 import mongoose from 'mongoose';
 import { deleteProfilePicFromS3 } from "../../../services/s3Service.js";
+import { podcastmodel } from "../../../models/podcastModel.js";
 
 
 
@@ -68,7 +69,8 @@ const userInfo = async (req, res) => {
             private: user.isPrivate,
             profilePic: user.profilePic,
             verified: user.verified,
-            followed:followed !== -1 ? true : false
+            followed:followed !== -1 ? true : false,
+            interests:currentUserId === id && user.interests
         };
 
         return res.status(200).json(responseData);
@@ -219,6 +221,70 @@ const unfollow = async (req, res, next) => {
 
 }
 
+// Controller to get my list
+const getMyList = async (req, res) => {
+    try {
+      const userId = req.headers.authorization;
+      const user = await userModel.findById(userId);
+
+      const myList = user.myList || [];
+
+      // Fetch podcast details for each podcast ID in myList
+      const podcastDetails = await Promise.all(myList.map(async (podcastId) => {
+        const podcast = await podcastmodel.findById(podcastId);
+        // Return the specific fields you want for each podcast
+        return {
+          title: podcast.title,
+          description: podcast.description,
+          posterUrl: podcast.posterUrl,
+          id:podcast.id
+        };
+      }));
+
+      res.status(200).json({ success: true, myList: podcastDetails });
+    } catch (error) {
+        console.log(error);
+      res.status(404).json({ error: 'Internal Server Error' });
+    }
+  };
+
+
+
+
+// Controller to update my list
+const updateMyList = async (req, res) => {
+    try {
+      const { podcastIds, action } = req.body;
+
+      console.log(req.body);
+      const userId = req.headers.authorization;
+      const user = await userModel.findById(userId);
+
+      const myList = user.myList || [];
+
+      if (action === 'add') {
+        myList.push(...podcastIds);
+      } else if (action === 'remove') {
+        podcastIds.forEach((podcastId) => {
+          const index = myList.indexOf(podcastId);
+          if (index !== -1) {
+            myList.splice(index, 1);
+          }
+        });
+      }
+
+      user.myList = myList;
+      await user.save();
+
+      // Explicitly return the response
+      return res.status(200).json({ success: true, message: 'Updated My List' });
+    } catch (error) {
+      // Explicitly return the error response
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  };
+
+
 
 
 // upload user profile
@@ -261,5 +327,7 @@ export {
     userFollowing,
     follow,
     unfollow,
-    userUpdate
+    userUpdate,
+    updateMyList,
+    getMyList
 }
