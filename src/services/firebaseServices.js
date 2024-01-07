@@ -50,7 +50,7 @@ export default router.post('/podcast/send', async (req, res) => {
             body: `Be the first to listen to ${body}🎧 `,
           },
           data: {
-            poster: poster || '', // Use the provided poster or an empty string
+            poster: poster || '',
           },
           token: token,
         }));

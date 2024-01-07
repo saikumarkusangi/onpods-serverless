@@ -33,12 +33,12 @@ app.get('/', (req, res) => {
 
 // Import and use your routes here
 import { userRoutes, adminRoutes, reportRoutes } from './src/routes/v1/index.js';
-import firebaseService from './src/services/firebaseServices.js'
+// import firebaseService from './src/services/firebaseServices.js'
 
 app.use('/v1', userRoutes);
 app.use('/v1', adminRoutes);
 app.use('/v1/report', reportRoutes);
-app.use('/v1',firebaseService)
+// app.use('/v1',firebaseService)
 
 // Not Found Middleware
 app.use((req, res, next) => {
