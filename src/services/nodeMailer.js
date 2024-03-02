@@ -4,6 +4,9 @@ import fs from 'fs';
 // Create a transporter with your email service details
 const transporter = nodemailer.createTransport({
     service: 'Gmail',
+    // host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: true,
     auth: {
         user: process.env.FROM_EMAIL,
         pass: process.env.EMAIL_PASS,
@@ -21,8 +24,9 @@ const sendCreateAccountOTP = (email) => {
 
     // Email configuration
     const mailOptions = {
-        from: 'onpodsapp@gmail.com',
+      from: `${process.env.EMAIL_USER}`,
         to: email,
+        priority: "high",
         subject: 'Your OTP Code',
         html: `
     <html>
