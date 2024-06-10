@@ -7,7 +7,7 @@ import { deleteEpisodeFromS3 } from '../../../services/s3Service.js';
 const podcastById = async (req, res) => {
     const { podcastId } = req.params;
     const userId = req.headers.authorization;
-
+    
     try {
         const [data, userFollowing] = await Promise.all([
             podcastmodel.findById(podcastId).lean().exec(),
@@ -191,8 +191,9 @@ const podcastsByUserId = async (req, res) => {
 // Controller to get podcast by category
 const podcastByCategory = async (req, res) => {
     const { category } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-
+   
+    const { page = 1, limit = 10 ,sortBy} = req.query;
+    // if sortBy is ratings sort by high rated else if listenCount sort higest totalListens else recentUpload sort by createdAt
     try {
         const matchPipeline = [
             {
@@ -203,6 +204,8 @@ const podcastByCategory = async (req, res) => {
         ];
 
         const countPipeline = [...matchPipeline, { $count: 'count' }];
+
+       
 
         const dataPipeline = [
             ...matchPipeline,
@@ -224,6 +227,20 @@ const podcastByCategory = async (req, res) => {
                 $limit: limit,
             },
         ];
+
+          // Sorting pipeline stage based on sortBy parameter
+          if (sortBy === 'ratings') {
+            dataPipeline.push({
+                $addFields: {
+                    averageRating: { $divide: ['$totalRating', '$numberOfRatings'] }, // Calculate averageRating
+                },
+            });
+            dataPipeline.push({ $sort: { averageRating: -1 } }); // Sort by descending totalRating
+        } else if (sortBy === 'listenCount') {
+            dataPipeline.push({ $sort: { totalListens: -1 } }); // Sort by descending totalListens
+        } else {
+            dataPipeline.push({ $sort: { createdAt: -1 } }); // Default to sorting by createdAt in descending order
+        }
 
         const countResult = await podcastmodel.aggregate(countPipeline);
         const data = await podcastmodel.aggregate(dataPipeline);
@@ -254,7 +271,7 @@ const podcastByCategory = async (req, res) => {
             totalPages,
         });
     } catch (error) {
-        return res.status(404).json({
+        return res.status(505).json({
             status: 'fail',
             message: `${error}`,
         });

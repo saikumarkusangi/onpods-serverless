@@ -56,7 +56,7 @@ const podcastSchema = new Schema({
     versionKey: false,
     timestamps: {
         createdAt: 'createdAt',
-        updatedAt: false
+        updatedAt: true
     },
 
 });

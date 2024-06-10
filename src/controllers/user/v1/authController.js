@@ -23,7 +23,7 @@ export const register = async (req, res) => {
       ...req.body,
     });
 
- 
+
 
     let findUser = await UserSchema.findOne({
       email: data.email,
@@ -60,26 +60,26 @@ export const register = async (req, res) => {
  */
 
 export const login = async (req, res) => {
-  const { email, password,oauth } = req.body;
+  const { email, password, oauth } = req.body;
 
   try {
     if (oauth) {
       const user = await UserSchema.findOne({ oauth });
-     if(user){
-      return res.status(200).json({
-        data: {
-          username: user.username,
-          email: user.email,
-          userType: user.userType,
-          id: user.id,
-        },
-      });
-     }else{
-    return  res.status(404).json({
-      message:'user not found'
-    })
-     }
-    }else{
+      if (user) {
+        return res.status(200).json({
+          data: {
+            username: user.username,
+            email: user.email,
+            userType: user.userType,
+            id: user.id,
+          },
+        });
+      } else {
+        return res.status(404).json({
+          message: 'user not found'
+        })
+      }
+    } else {
       const user = await UserSchema.findOne({ email });
 
       if (!user || user.oauth !== '') {
@@ -191,14 +191,15 @@ export const sendForgotPasswordOtp = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    hashPass = await bcrypt.hash(password, 8);
+   
+    const { password, email } = req.body;
+    
+  const hashPass = await bcrypt.hash(password, 8);
     const user = await UserSchema.findOneAndUpdate(
       { email: email },
       {
         password: hashPass,
-      },
-      { new: true }
+      }
     );
     if (!user) {
       return res.status(200).json({
@@ -210,8 +211,7 @@ export const resetPassword = async (req, res) => {
     return res.status(200).json({
       status: "success",
       message: "Password Updated Successfully",
-      otp: response,
-    });
+        });
   } catch (error) {
     return res.status(404).json({
       message: `${error}`,
@@ -233,13 +233,13 @@ export const deleteAccount = async (req, res) => {
       const imageKeys = quotes.map(quote => {
         const parts = quote.imageUrl.split('/');
         return parts[parts.length - 1];
-    });
+      });
 
-    // Delete images from S3 in parallel
-    await Promise.all(imageKeys.map(objectKey => deleteImageFromS3(objectKey)));
+      // Delete images from S3 in parallel
+      await Promise.all(imageKeys.map(objectKey => deleteImageFromS3(objectKey)));
 
-    // Delete quotes from MongoDB
-    await quoteModel.deleteMany({ userId: user._id });
+      // Delete quotes from MongoDB
+      await quoteModel.deleteMany({ userId: user._id });
       // Delete podcasts associated with the user
       const podcasts = await podcastmodel
         .find({ userId: user._id })
@@ -265,9 +265,9 @@ export const deleteAccount = async (req, res) => {
       await userModel.findByIdAndDelete(userId);
 
       return res.status(200).json({
-          status: 'success',
-          message: 'Account deleted successfully',
-        });
+        status: 'success',
+        message: 'Account deleted successfully',
+      });
     }
   } catch (err) {
     return res.status(500).json({

@@ -244,6 +244,26 @@ const deletePodcastCategory = async (req, res) => {
     }
 }
 
+// report an podcast category
+const reportPodcastCategory = async (req, res) => {
+  try {
+      const { id } = req.params;
+      const {message} = req.body;
+      const result = await podcastCategoriesModel.findByIdAndDelete(categoryId);
+      if (result) {
+          return res.status(200).json({
+              status: 'success',
+              message: 'Category Deleted Sucessfully'
+          });
+      }
+  } catch (error) {
+      return res.status(404).json({
+          status: 'fail',
+          message: `${error}`
+      });
+  }
+}
+
 // update podcast category
 const updatePodcastCategory = async (req, res) => {
     try {
