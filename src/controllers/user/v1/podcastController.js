@@ -58,6 +58,7 @@ const podcastById = async (req, res) => {
 
         const response = {
             user: user,
+            poster:data.posterUrl,
             categoryId: data.category,
             createdAt: data.createdAt,
             followers: followersCountShortened ?? '0',
