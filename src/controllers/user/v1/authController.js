@@ -209,7 +209,7 @@ export const resetPassword = async (req, res) => {
     }
 
     return res.status(200).json({
-      status: "success",
+      success: true,
       message: "Password Updated Successfully",
         });
   } catch (error) {
